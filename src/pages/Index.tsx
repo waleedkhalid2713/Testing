@@ -6,7 +6,7 @@ import { FeatureCardGrid } from "@/components/home/FeatureCardGrid";
 import { FeatureDetailsDialog } from "@/components/home/FeatureDetailsDialog";
 import { featureDetails, type FeatureKey } from "@/components/home/features";
 
-import moduleForecast from "@/assets/module-forecast.jpg";
+import moduleForecast from "@/assets/module-forecast-daily.jpg";
 import moduleCalendar from "@/assets/module-calendar.jpg";
 import moduleBootcamp from "@/assets/module-bootcamp.jpg";
 import moduleRisk from "@/assets/module-risk.jpg";
