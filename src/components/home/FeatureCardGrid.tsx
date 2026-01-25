@@ -47,11 +47,6 @@ export function FeatureCardGrid({
                   loading="lazy"
                   className="h-36 w-full object-cover opacity-80 transition duration-300 group-hover:opacity-100 group-hover:scale-[1.02]"
                 />
-                <div
-                  className="absolute inset-0 mix-blend-multiply transition-opacity duration-300 opacity-35 group-hover:opacity-55"
-                  style={{ backgroundColor: "hsl(var(--card-image-tint))" }}
-                />
-                <div className="absolute inset-0" style={{ backgroundImage: "var(--gradient-hero)" }} />
               </div>
 
               <CardHeader className="space-y-2">
