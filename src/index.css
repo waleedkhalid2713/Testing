@@ -18,13 +18,14 @@ All colors MUST be HSL.
 
     /* Light theme */
     --background: 180 2% 65%; /* #A4A6A6 */
-    --foreground: 180 100% 3%; /* #000D0D */
+    /* Slightly softer than pure near-black for better blending on #A4A6A6 */
+    --foreground: 180 95% 8%; /* #012626 */
 
     --card: 180 2% 65%;
-    --card-foreground: 180 100% 3%;
+    --card-foreground: 180 95% 8%;
 
     --popover: 180 2% 65%;
-    --popover-foreground: 180 100% 3%;
+    --popover-foreground: 180 95% 8%;
 
     /* Primary action (teal) */
     --primary: 174 93% 18%; /* #035951 */
@@ -40,7 +41,8 @@ All colors MUST be HSL.
 
     /* Derived neutral tints from #A4A6A6 */
     --muted: 180 2% 86%;
-    --muted-foreground: 174 38% 18%;
+    /* Calm secondary text using your green-teal */
+    --muted-foreground: 174 97% 13%; /* #01403A */
 
     /* Accent interactions */
     --accent: 180 95% 8%; /* #012626 */
@@ -82,7 +84,7 @@ All colors MUST be HSL.
     /* Dark theme */
     /* Force background to the requested brand neutral */
     --background: 180 2% 65%; /* #A4A6A6 */
-    --foreground: 180 100% 3%; /* #000D0D */
+    --foreground: 180 95% 8%; /* #012626 */
 
     --card: 180 95% 8%; /* #012626 */
     --card-foreground: 180 2% 65%;
@@ -101,7 +103,7 @@ All colors MUST be HSL.
     --secondary-foreground: 210 40% 98%;
 
     --muted: 180 95% 8%;
-    --muted-foreground: 180 2% 65%;
+    --muted-foreground: 174 97% 13%; /* #01403A */
 
     --accent: 180 95% 8%;
     --accent-foreground: 210 40% 98%;
