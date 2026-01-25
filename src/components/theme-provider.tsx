@@ -23,26 +23,12 @@ function applyThemeClass(theme: Theme) {
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
-  storageKey = "theme",
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = React.useState<Theme>(() => {
-    if (typeof window === "undefined") return defaultTheme;
-    const saved = window.localStorage.getItem(storageKey);
-    return saved === "light" || saved === "dark" ? saved : defaultTheme;
-  });
-
-  const setTheme = React.useCallback(
-    (next: Theme) => {
-      setThemeState(next);
-      try {
-        window.localStorage.setItem(storageKey, next);
-      } catch {
-        // ignore
-      }
-      applyThemeClass(next);
-    },
-    [storageKey],
-  );
+  // Theme switching removed: the app is locked to a single theme.
+  const theme = defaultTheme;
+  const setTheme = React.useCallback((_next: Theme) => {
+    // no-op
+  }, []);
 
   React.useEffect(() => {
     applyThemeClass(theme);
