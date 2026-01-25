@@ -8,49 +8,56 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Palette base (provided)
+      #A4A6A6 (light gray)
+      #012626 (deep teal)
+      #000D0D (near-black teal)
+      #01403A (dark green-teal)
+      #035951 (teal)
+    */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Light theme */
+    --background: 180 2% 65%; /* #A4A6A6 */
+    --foreground: 180 100% 3%; /* #000D0D */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --card: 180 2% 65%;
+    --card-foreground: 180 100% 3%;
 
-    /* Palette (from provided swatches) */
-    /* #022873 */
-    --primary: 220 97% 23%;
+    --popover: 180 2% 65%;
+    --popover-foreground: 180 100% 3%;
+
+    /* Primary action (teal) */
+    --primary: 174 93% 18%; /* #035951 */
     --primary-foreground: 210 40% 98%;
 
     /* Supporting tones */
-    /* #023E73 */
-    --primary-glow: 212 97% 23%;
-    /* #021F59 (deep indigo) */
-    --primary-ink: 221 96% 18%;
+    --primary-glow: 174 97% 13%; /* #01403A */
+    --primary-ink: 180 100% 3%; /* #000D0D */
 
-    /* #025373 */
-    --secondary: 197 97% 23%;
+    /* Secondary surfaces/controls */
+    --secondary: 174 97% 13%; /* #01403A */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Derived neutral tints from #A4A6A6 */
+    --muted: 180 2% 86%;
+    --muted-foreground: 174 38% 18%;
 
-    /* #1B778C */
-    --accent: 192 68% 33%;
+    /* Accent interactions */
+    --accent: 180 95% 8%; /* #012626 */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 192 68% 33%;
+    --border: 180 2% 55%;
+    --input: 180 2% 55%;
+    --ring: 174 93% 18%;
 
     --radius: 0.5rem;
 
     /* Gradients */
-    --gradient-hero: radial-gradient(1200px circle at 18% 10%, hsl(var(--primary) / 0.35), transparent 55%),
-      radial-gradient(900px circle at 86% 28%, hsl(var(--primary-glow) / 0.22), transparent 60%),
+    --gradient-hero: radial-gradient(1200px circle at 18% 10%, hsl(var(--primary) / 0.28), transparent 55%),
+      radial-gradient(900px circle at 86% 28%, hsl(var(--primary-glow) / 0.20), transparent 60%),
       radial-gradient(700px circle at 55% 78%, hsl(var(--ring) / 0.10), transparent 65%);
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-ink)) 85%);
 
@@ -72,42 +79,43 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark theme */
+    --background: 180 100% 3%; /* #000D0D */
+    --foreground: 180 2% 65%; /* #A4A6A6 */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 180 95% 8%; /* #012626 */
+    --card-foreground: 180 2% 65%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 180 95% 8%;
+    --popover-foreground: 180 2% 65%;
 
-    /* Indigo primary (dark mode) */
-    --primary: 220 97% 55%;
+    /* Primary action (dark mode) */
+    --primary: 174 93% 18%;
     --primary-foreground: 210 40% 98%;
 
-    --primary-glow: 192 68% 45%;
-    --primary-ink: 222.2 84% 4.9%;
+    --primary-glow: 174 97% 13%;
+    --primary-ink: 180 100% 3%;
 
-    --secondary: 197 97% 23%;
+    --secondary: 174 97% 13%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 180 95% 8%;
+    --muted-foreground: 180 2% 65%;
 
-    --accent: 192 68% 33%;
+    --accent: 180 95% 8%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 192 68% 60%;
+    --border: 174 97% 13%;
+    --input: 174 97% 13%;
+    --ring: 174 93% 25%;
 
     /* Gradients */
-    --gradient-hero: radial-gradient(1200px circle at 18% 10%, hsl(var(--primary) / 0.28), transparent 55%),
-      radial-gradient(900px circle at 86% 28%, hsl(var(--primary-glow) / 0.20), transparent 60%),
-      radial-gradient(700px circle at 55% 78%, hsl(var(--ring) / 0.08), transparent 65%);
+    --gradient-hero: radial-gradient(1200px circle at 18% 10%, hsl(var(--primary) / 0.22), transparent 55%),
+      radial-gradient(900px circle at 86% 28%, hsl(var(--primary-glow) / 0.18), transparent 60%),
+      radial-gradient(700px circle at 55% 78%, hsl(var(--ring) / 0.10), transparent 65%);
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-ink)) 85%);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
