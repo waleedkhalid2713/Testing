@@ -2,7 +2,6 @@ import * as React from "react";
 import { ArrowRight } from "lucide-react";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import forexHeroClean from "@/assets/forex-hero-clean.jpg";
 
 import type { FeatureKey } from "@/components/home/features";
 
@@ -11,6 +10,8 @@ type FeatureCardGridItem = {
   title: string;
   description: string;
   icon: React.ReactNode;
+  imageSrc: string;
+  imageAlt: string;
 };
 
 export function FeatureCardGrid({
@@ -41,8 +42,8 @@ export function FeatureCardGrid({
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/0 to-background" />
                 <img
-                  src={forexHeroClean}
-                  alt={`${it.title} trading module cover`}
+                  src={it.imageSrc}
+                  alt={it.imageAlt}
                   loading="lazy"
                   className="h-36 w-full object-cover opacity-80 transition duration-300 group-hover:opacity-100 group-hover:scale-[1.02]"
                 />

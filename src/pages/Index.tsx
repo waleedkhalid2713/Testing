@@ -6,6 +6,12 @@ import { FeatureCardGrid } from "@/components/home/FeatureCardGrid";
 import { FeatureDetailsDialog } from "@/components/home/FeatureDetailsDialog";
 import { featureDetails, type FeatureKey } from "@/components/home/features";
 
+import moduleForecast from "@/assets/module-forecast.jpg";
+import moduleCalendar from "@/assets/module-calendar.jpg";
+import moduleBootcamp from "@/assets/module-bootcamp.jpg";
+import moduleRisk from "@/assets/module-risk.jpg";
+import moduleResources from "@/assets/module-resources.jpg";
+
 const Index = () => {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<FeatureKey>("forecast");
@@ -15,6 +21,33 @@ const Index = () => {
       (Object.keys(featureDetails) as FeatureKey[]).map((k) => {
         const d = featureDetails[k];
         const Icon = d.icon;
+
+        const cover =
+          k === "forecast"
+            ? {
+                src: moduleForecast,
+                alt: "Abstract candlestick waves and grid representing daily market forecasts",
+              }
+            : k === "calendar"
+              ? {
+                  src: moduleCalendar,
+                  alt: "Abstract calendar blocks and chart line representing economic calendar planning",
+                }
+              : k === "bootcamp"
+                ? {
+                    src: moduleBootcamp,
+                    alt: "Abstract stepped blocks representing a structured trading bootcamp",
+                  }
+                : k === "risk"
+                  ? {
+                      src: moduleRisk,
+                      alt: "Abstract shield outline representing risk management framework",
+                    }
+                  : {
+                      src: moduleResources,
+                      alt: "Abstract checklist tiles representing downloadable trading resources and templates",
+                    };
+
         return {
           k,
           title: d.title,
@@ -29,6 +62,8 @@ const Index = () => {
                     ? "Rules to protect downside first."
                     : "Templates + education library.",
           icon: <Icon className="h-4 w-4" />,
+          imageSrc: cover.src,
+          imageAlt: cover.alt,
         };
       }),
     [],
