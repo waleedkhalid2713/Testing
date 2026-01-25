@@ -80,8 +80,9 @@ All colors MUST be HSL.
 
   .dark {
     /* Dark theme */
-    --background: 180 100% 3%; /* #000D0D */
-    --foreground: 180 2% 65%; /* #A4A6A6 */
+    /* Force background to the requested brand neutral */
+    --background: 180 2% 65%; /* #A4A6A6 */
+    --foreground: 180 100% 3%; /* #000D0D */
 
     --card: 180 95% 8%; /* #012626 */
     --card-foreground: 180 2% 65%;
