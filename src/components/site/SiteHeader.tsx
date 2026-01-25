@@ -1,7 +1,6 @@
 import * as React from "react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/site/ThemeToggle";
 
 const linkBase =
   "text-sm text-muted-foreground transition-colors hover:text-foreground";
@@ -42,7 +41,6 @@ export function SiteHeader() {
           <Button asChild size="sm">
             <a href="/bootcamp">Join Bootcamp</a>
           </Button>
-          <ThemeToggle />
         </div>
       </div>
     </header>
