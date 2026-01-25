@@ -64,6 +64,9 @@ All colors MUST be HSL.
     /* Card surfaces */
     --gradient-card: linear-gradient(135deg, hsl(var(--primary)) / 0.20, hsl(var(--primary-glow)) / 0.35);
 
+    /* Card image tint (requested: #264F73) */
+    --card-image-tint: 208 50% 30%;
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -121,6 +124,9 @@ All colors MUST be HSL.
       radial-gradient(700px circle at 55% 78%, hsl(var(--ring) / 0.12), transparent 65%);
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)) 100%);
     --gradient-card: linear-gradient(135deg, hsl(var(--primary)) / 0.18, hsl(var(--primary-glow)) / 0.30);
+
+    /* Card image tint (requested: #264F73) */
+    --card-image-tint: 208 50% 30%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
