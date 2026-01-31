@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HomeHero } from "@/components/home/HomeHero";
+import { HomeServicesBlocks } from "@/components/home/HomeServicesBlocks";
+import { HomeStatsStrip } from "@/components/home/HomeStatsStrip";
+import { HomeSocialProof } from "@/components/home/HomeSocialProof";
 import { FeatureCardGrid } from "@/components/home/FeatureCardGrid";
 import { FeatureDetailsDialog } from "@/components/home/FeatureDetailsDialog";
 import { featureDetails, type FeatureKey } from "@/components/home/features";
@@ -74,6 +77,8 @@ const Index = () => {
     <div>
       <HomeHero />
 
+      <HomeServicesBlocks />
+
       <section className="border-b">
         <div className="container py-14">
           <Reveal>
@@ -101,6 +106,10 @@ const Index = () => {
           </Reveal>
         </div>
       </section>
+
+      <HomeStatsStrip />
+
+      <HomeSocialProof />
 
       <section className="border-t">
         <div className="container py-12">

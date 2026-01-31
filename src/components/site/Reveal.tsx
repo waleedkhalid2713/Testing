@@ -5,6 +5,7 @@ type RevealProps = {
   children: React.ReactNode;
   className?: string;
   delayMs?: number;
+  onVisible?: () => void;
 };
 
 function prefersReducedMotion() {
@@ -12,9 +13,18 @@ function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
 }
 
-export function Reveal({ children, className, delayMs = 0 }: RevealProps) {
+export function Reveal({ children, className, delayMs = 0, onVisible }: RevealProps) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [shown, setShown] = React.useState(false);
+  const didCallVisible = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!shown) return;
+    if (!onVisible) return;
+    if (didCallVisible.current) return;
+    didCallVisible.current = true;
+    onVisible();
+  }, [shown, onVisible]);
 
   React.useEffect(() => {
     if (prefersReducedMotion()) {

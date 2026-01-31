@@ -29,6 +29,7 @@ All colors MUST be HSL.
     /* Supporting tones */
     --primary-glow: 153 60% 52%;
     --accent-blue: 206 92% 60%;
+    --accent-purple: 268 92% 68%;
     --primary-ink: 0 0% 98%;
 
     /* Secondary surfaces/controls */
@@ -48,25 +49,32 @@ All colors MUST be HSL.
 
     --border: 220 16% 18%;
     --input: 220 16% 18%;
-    --ring: 206 92% 60%;
+    --ring: 268 92% 68%;
 
     --radius: 0.5rem;
 
     /* Gradients */
-    --gradient-hero: radial-gradient(1100px circle at 18% 12%, hsl(var(--primary) / 0.26), transparent 55%),
-      radial-gradient(950px circle at 86% 26%, hsl(var(--accent-blue) / 0.18), transparent 60%),
-      radial-gradient(700px circle at 55% 78%, hsl(var(--primary-glow) / 0.12), transparent 65%);
+    --gradient-hero: radial-gradient(1100px circle at 18% 12%, hsl(var(--primary) / 0.28), transparent 55%),
+      radial-gradient(980px circle at 86% 24%, hsl(var(--accent-blue) / 0.18), transparent 62%),
+      radial-gradient(820px circle at 54% 78%, hsl(var(--accent-purple) / 0.16), transparent 66%);
 
     /* Site-wide background gradient (subtle, high-contrast, dark-first) */
-    --gradient-page: radial-gradient(1200px circle at 12% 8%, hsl(var(--accent-blue) / 0.16), transparent 52%),
-      radial-gradient(1000px circle at 88% 18%, hsl(var(--primary) / 0.18), transparent 54%),
-      radial-gradient(900px circle at 45% 85%, hsl(var(--primary-glow) / 0.12), transparent 58%),
+    --gradient-page: radial-gradient(1300px circle at 12% 8%, hsl(var(--accent-blue) / 0.16), transparent 52%),
+      radial-gradient(980px circle at 88% 18%, hsl(var(--accent-purple) / 0.16), transparent 56%),
+      radial-gradient(1050px circle at 40% 86%, hsl(var(--primary-glow) / 0.12), transparent 58%),
+      radial-gradient(900px circle at 55% 45%, hsl(var(--primary) / 0.10), transparent 60%),
       linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
     /* Buttons + CTA surfaces */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-blue)) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-purple)) 55%, hsl(var(--accent-blue)) 100%);
 
     /* Card surfaces */
-    --gradient-card: linear-gradient(135deg, hsl(var(--primary)) / 0.16, hsl(var(--accent-blue)) / 0.18 55%, hsl(var(--primary-glow)) / 0.10);
+    --gradient-card: linear-gradient(
+      135deg,
+      hsl(var(--primary)) / 0.16,
+      hsl(var(--accent-purple)) / 0.14 44%,
+      hsl(var(--accent-blue)) / 0.16 72%,
+      hsl(var(--primary-glow)) / 0.10
+    );
 
     /* Shadows */
     --shadow-soft: 0 12px 40px -20px hsl(var(--accent-blue) / 0.45);
