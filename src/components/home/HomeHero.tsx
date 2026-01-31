@@ -24,6 +24,7 @@ const slides: Array<{
   titleAccent: string;
   titleBottom: string;
   subtitle: string;
+  position: string;
 }> = [
   {
     img: heroSlide1,
@@ -33,6 +34,7 @@ const slides: Array<{
     titleAccent: "Trading Edge",
     titleBottom: "with Epic Trader",
     subtitle: "Daily forecasts, calendar awareness, and bootcamps designed for real-world consistency.",
+    position: "object-center",
   },
   {
     img: heroSlide1,
@@ -42,6 +44,7 @@ const slides: Array<{
     titleAccent: "Discipline",
     titleBottom: "before outcomes",
     subtitle: "Define risk, plan sessions, execute rules, and review with honesty—week after week.",
+    position: "object-top",
   },
   {
     img: heroSlide1,
@@ -51,6 +54,7 @@ const slides: Array<{
     titleAccent: "Markets",
     titleBottom: "with one framework",
     subtitle: "Forex, Crypto, Stocks, Indices, Commodities, and Macro—same process, different instruments.",
+    position: "object-bottom",
   },
 ];
 
