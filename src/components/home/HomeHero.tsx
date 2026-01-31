@@ -1,9 +1,11 @@
 import * as React from "react";
+import { ArrowRight } from "lucide-react";
 
 import heroCover from "@/assets/forex-hero-cover.jpg";
 import heroClean from "@/assets/forex-hero-clean.jpg";
 import heroClassic from "@/assets/forex-hero.jpg";
 
+import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 
@@ -18,8 +20,7 @@ function prefersReducedMotion() {
 
 const slides = [
   {
-    // Use the clean hero for the cover slide to avoid watermark-like overlay text baked into the image.
-    img: heroClean,
+    img: heroCover,
     alt: "Forex trader analyzing charts on multiple monitors",
     eyebrow: "Process-first trading education",
     titleTop: "Create your",
@@ -97,6 +98,24 @@ export function HomeHero() {
                     <br />
                     {s.titleBottom}
                   </h1>
+
+                  <p className="mx-auto mt-5 max-w-2xl text-pretty text-base text-muted-foreground sm:text-lg">
+                    {s.subtitle}
+                  </p>
+
+                  <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                    <Button asChild className="rounded-full px-6">
+                      <a href="/bootcamp">
+                        Join Bootcamp <ArrowRight className="ml-2 h-4 w-4" />
+                      </a>
+                    </Button>
+                    <Button asChild variant="secondary" className="rounded-full px-6">
+                      <a href="/resources">View Daily Forecast</a>
+                    </Button>
+                    <Button asChild variant="outline" className="rounded-full px-6">
+                      <a href="/contact">Book a Call</a>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* “Mockup” strip (Cyberbank-style) */}
