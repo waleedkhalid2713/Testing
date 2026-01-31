@@ -23,6 +23,7 @@ const slides: Array<{
   titleAccent: string;
   titleBottom: string;
   subtitle: string;
+  position: string;
 }> = [
   {
     img: heroSlide1,
@@ -32,6 +33,7 @@ const slides: Array<{
     titleAccent: "Trading Edge",
     titleBottom: "with Epic Trader",
     subtitle: "Daily forecasts, calendar awareness, and bootcamps designed for real-world consistency.",
+    position: "object-center",
   },
   {
     img: moduleCalendar,
@@ -41,6 +43,7 @@ const slides: Array<{
     titleAccent: "Discipline",
     titleBottom: "before outcomes",
     subtitle: "Define risk, plan sessions, execute rules, and review with honesty—week after week.",
+    position: "object-top",
   },
   {
     img: moduleForecast,
@@ -50,6 +53,7 @@ const slides: Array<{
     titleAccent: "Markets",
     titleBottom: "with one framework",
     subtitle: "Forex, Crypto, Stocks, Indices, Commodities, and Macro—same process, different instruments.",
+    position: "object-bottom",
   },
 ];
 
@@ -99,7 +103,7 @@ export function HomeHero() {
                   <img
                     src={s.img}
                     alt={s.alt}
-                    className="h-full w-full scale-105 object-cover object-center opacity-55 blur-sm"
+                    className={`h-full w-full scale-105 object-cover ${s.position} opacity-55 blur-sm`}
                     loading="eager"
                   />
                 ) : (
