@@ -74,15 +74,33 @@ const Index = () => {
     <div>
       <HomeHero />
 
-      <Reveal>
-        <FeatureCardGrid
-          items={gridItems}
-          onSelect={(k) => {
-            setActive(k);
-            setOpen(true);
-          }}
-        />
-      </Reveal>
+      <section className="border-b">
+        <div className="container py-14">
+          <Reveal>
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-xs font-medium tracking-wide text-muted-foreground">Modules</p>
+              <h2 className="mt-2 text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+                Everything you need to trade with structure
+              </h2>
+              <p className="mt-3 text-pretty text-sm text-muted-foreground sm:text-base">
+                A hybrid system: forecasting + calendar awareness + risk rules + resources—built for consistency.
+              </p>
+            </div>
+          </Reveal>
+
+          <Reveal delayMs={120}>
+            <div className="mt-10">
+              <FeatureCardGrid
+                items={gridItems}
+                onSelect={(k) => {
+                  setActive(k);
+                  setOpen(true);
+                }}
+              />
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
       <section className="border-t">
         <div className="container py-12">
