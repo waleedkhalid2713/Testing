@@ -2,13 +2,11 @@ import * as React from "react";
 import { ArrowRight, Pause, Play } from "lucide-react";
 
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
-import epicTraderLogo from "@/assets/epic-trader-logo.png";
 
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 
-import { homeHeroIntro } from "@/content/homeHeroIntro";
 import { useCarouselAutoplay } from "@/components/home/useCarouselAutoplay";
 
 import moduleForecast from "@/assets/module-forecast-daily.jpg";
@@ -94,9 +92,9 @@ export function HomeHero() {
         </Button>
         <CarouselContent>
           {slides.map((s) => (
-            <CarouselItem key={s.titleAccent}>
+            <CarouselItem key={s.titleAccent} className="relative min-h-[560px] sm:min-h-[640px]">
               {/* Background image */}
-              <div className="pointer-events-none absolute inset-0">
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
                 {s.img ? (
                   <img
                     src={s.img}
@@ -114,20 +112,6 @@ export function HomeHero() {
 
               <div className="container relative py-16 sm:py-20">
                 <div className="mx-auto max-w-4xl text-center">
-                  {/* Cover (global) branding — not tied to a specific slide */}
-                  <div className="pointer-events-none mx-auto mb-6 flex max-w-4xl flex-col items-center justify-center gap-3">
-                    <img
-                      src={epicTraderLogo}
-                      alt="Epic Trader logo"
-                      className="h-16 w-auto opacity-90 drop-shadow-[0_10px_30px_hsl(var(--primary)/0.20)] sm:h-20"
-                      loading="eager"
-                      decoding="async"
-                    />
-                    <p className="mx-auto max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
-                      {homeHeroIntro}
-                    </p>
-                  </div>
-
                   <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
                     <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.15)]" />
                     {s.eyebrow}
