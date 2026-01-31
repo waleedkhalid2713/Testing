@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { PageHero } from "@/components/site/PageHero";
+import { Reveal } from "@/components/site/Reveal";
 import heroImage from "@/assets/module-bootcamp.jpg";
 
 const Bootcamp = () => {
@@ -18,7 +19,8 @@ const Bootcamp = () => {
       <div className="container py-12">
         <section className="grid gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-7">
-            <Card>
+            <Reveal>
+              <Card className="hover-glow">
               <CardHeader>
                 <CardTitle>Overview</CardTitle>
                 <CardDescription>What the program is designed to change.</CardDescription>
@@ -34,9 +36,11 @@ const Bootcamp = () => {
                   <li>Review routines to reduce impulsive trading</li>
                 </ul>
               </CardContent>
-            </Card>
+              </Card>
+            </Reveal>
 
-            <Card>
+            <Reveal delayMs={120}>
+              <Card className="hover-glow">
               <CardHeader>
                 <CardTitle>Curriculum modules</CardTitle>
                 <CardDescription>Sample structure (editable in admin later).</CardDescription>
@@ -55,11 +59,13 @@ const Bootcamp = () => {
                   </div>
                 ))}
               </CardContent>
-            </Card>
+              </Card>
+            </Reveal>
           </div>
 
           <aside className="space-y-6 lg:col-span-5">
-            <Card>
+            <Reveal delayMs={200}>
+              <Card className="hover-glow">
               <CardHeader>
                 <div className="flex items-center justify-between gap-4">
                   <CardTitle>Enrollment</CardTitle>
@@ -82,7 +88,8 @@ const Bootcamp = () => {
                   Educational content only. Not financial advice. Trading involves risk.
                 </p>
               </CardContent>
-            </Card>
+              </Card>
+            </Reveal>
           </aside>
         </section>
       </div>

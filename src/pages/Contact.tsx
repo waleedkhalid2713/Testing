@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import { PageHero } from "@/components/site/PageHero";
+import { Reveal } from "@/components/site/Reveal";
 import heroImage from "@/assets/module-calendar.jpg";
 
 const contactSchema = z.object({
@@ -36,7 +37,8 @@ const Contact = () => {
 
       <div className="container py-12">
         <section className="grid gap-6 lg:grid-cols-12">
-          <Card className="lg:col-span-7">
+          <Reveal className="lg:col-span-7">
+            <Card className="hover-glow">
             <CardHeader>
               <CardTitle>Message</CardTitle>
               <CardDescription>We’ll get back to you as soon as possible.</CardDescription>
@@ -92,9 +94,11 @@ const Contact = () => {
                 Send
               </Button>
             </CardContent>
-          </Card>
+            </Card>
+          </Reveal>
 
-          <Card className="lg:col-span-5">
+          <Reveal className="lg:col-span-5" delayMs={120}>
+            <Card className="hover-glow">
             <CardHeader>
               <CardTitle>Schedule</CardTitle>
               <CardDescription>Embed a scheduling tool here (Calendly-like).</CardDescription>
@@ -104,7 +108,8 @@ const Contact = () => {
                 <p className="text-sm text-muted-foreground">Scheduling embed placeholder</p>
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          </Reveal>
         </section>
       </div>
     </div>

@@ -52,7 +52,7 @@ export function FeatureCardGrid({
               <CardHeader className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-md border bg-card/60 backdrop-blur transition-transform duration-300 group-hover:rotate-2 group-hover:scale-105">
+                     <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-md border bg-card/60 backdrop-blur transition-transform duration-300 group-hover:rotate-2 group-hover:scale-105 hover-glow">
                       <span className="absolute -inset-6 opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(circle, hsl(var(--primary)/0.25), transparent 60%)" }} />
                       <span className="relative">{it.icon}</span>
                     </span>
