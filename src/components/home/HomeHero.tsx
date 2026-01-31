@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Pause, Play } from "lucide-react";
 
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import epicTraderLogo from "@/assets/epic-trader-logo.png";
@@ -7,7 +7,7 @@ import heroClean from "@/assets/forex-hero-clean.jpg";
 import heroClassic from "@/assets/forex-hero.jpg";
 
 import { Button } from "@/components/ui/button";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 
 import moduleForecast from "@/assets/module-forecast-daily.jpg";
@@ -52,13 +52,15 @@ const slides = [
 
 export function HomeHero() {
   const [api, setApi] = React.useState<CarouselApi>();
+  const [paused, setPaused] = React.useState(false);
 
   React.useEffect(() => {
     if (!api) return;
+    if (paused) return;
     if (prefersReducedMotion()) return;
     const id = window.setInterval(() => api.scrollNext(), 5500);
     return () => window.clearInterval(id);
-  }, [api]);
+  }, [api, paused]);
 
   return (
     <header className="relative overflow-hidden border-b">
@@ -69,6 +71,26 @@ export function HomeHero() {
           setApi(next);
         }}
       >
+        {/* Manual navigation */}
+        <CarouselPrevious
+          variant="outline"
+          className="left-4 top-1/2 z-10 -translate-y-1/2 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40"
+        />
+        <CarouselNext
+          variant="outline"
+          className="right-4 top-1/2 z-10 -translate-y-1/2 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => setPaused((p) => !p)}
+          className="absolute bottom-4 right-4 z-10 rounded-full bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40"
+          aria-label={paused ? "Play slideshow" : "Pause slideshow"}
+        >
+          {paused ? <Play /> : <Pause />}
+          <span className="sr-only">{paused ? "Play" : "Pause"}</span>
+        </Button>
         <CarouselContent>
           {slides.map((s) => (
             <CarouselItem key={s.titleAccent}>
