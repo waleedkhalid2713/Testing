@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { PageHero } from "@/components/site/PageHero";
 import { Reveal } from "@/components/site/Reveal";
-import heroImage from "@/assets/forex-hero-clean.jpg";
+import heroImage from "@/assets/hero-slide-1.jpg";
 
 const About = () => {
   return (

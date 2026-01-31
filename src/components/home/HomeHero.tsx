@@ -3,8 +3,6 @@ import { ArrowRight, Pause, Play } from "lucide-react";
 
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
 import epicTraderLogo from "@/assets/epic-trader-logo.png";
-import heroClean from "@/assets/forex-hero-clean.jpg";
-import heroClassic from "@/assets/forex-hero.jpg";
 
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -31,7 +29,7 @@ const slides = [
     showLogo: true,
   },
   {
-    img: heroClean,
+    img: heroSlide1,
     alt: "Trader analyzing charts in a professional workspace",
     eyebrow: "Risk-first mentorship",
     titleTop: "Build",
@@ -40,7 +38,7 @@ const slides = [
     subtitle: "Define risk, plan sessions, execute rules, and review with honesty—week after week.",
   },
   {
-    img: heroClassic,
+    img: heroSlide1,
     alt: "Forex chart analysis and market overview",
     eyebrow: "Structured routine",
     titleTop: "Trade across",
