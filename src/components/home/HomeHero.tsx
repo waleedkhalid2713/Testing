@@ -99,7 +99,7 @@ export function HomeHero() {
                   <img
                     src={s.img}
                     alt={s.alt}
-                    className="h-full w-full object-cover object-center opacity-55"
+                    className="h-full w-full scale-105 object-cover object-center opacity-55 blur-sm"
                     loading="eager"
                   />
                 ) : (
