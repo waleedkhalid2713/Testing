@@ -7,7 +7,7 @@ import heroClean from "@/assets/forex-hero-clean.jpg";
 import heroClassic from "@/assets/forex-hero.jpg";
 
 import { Button } from "@/components/ui/button";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 
 import moduleForecast from "@/assets/module-forecast-daily.jpg";
@@ -69,6 +69,15 @@ export function HomeHero() {
           setApi(next);
         }}
       >
+        {/* Manual navigation */}
+        <CarouselPrevious
+          variant="outline"
+          className="left-4 top-1/2 z-10 -translate-y-1/2 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40"
+        />
+        <CarouselNext
+          variant="outline"
+          className="right-4 top-1/2 z-10 -translate-y-1/2 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40"
+        />
         <CarouselContent>
           {slides.map((s) => (
             <CarouselItem key={s.titleAccent}>
