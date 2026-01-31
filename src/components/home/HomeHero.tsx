@@ -8,14 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 
+import { homeHeroIntro } from "@/content/homeHeroIntro";
+import { useCarouselAutoplay } from "@/components/home/useCarouselAutoplay";
+
 import moduleForecast from "@/assets/module-forecast-daily.jpg";
 import moduleCalendar from "@/assets/module-calendar.jpg";
 import moduleRisk from "@/assets/module-risk.jpg";
 
-function prefersReducedMotion() {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-}
+const SLIDE_INTERVAL_MS = 5500;
 
 const slides = [
   {
@@ -52,13 +52,7 @@ export function HomeHero() {
   const [api, setApi] = React.useState<CarouselApi>();
   const [paused, setPaused] = React.useState(false);
 
-  React.useEffect(() => {
-    if (!api) return;
-    if (paused) return;
-    if (prefersReducedMotion()) return;
-    const id = window.setInterval(() => api.scrollNext(), 5500);
-    return () => window.clearInterval(id);
-  }, [api, paused]);
+  useCarouselAutoplay(api, { intervalMs: SLIDE_INTERVAL_MS, paused });
 
   return (
     <header className="relative overflow-hidden border-b">
@@ -111,13 +105,18 @@ export function HomeHero() {
                     <img
                       src={epicTraderLogo}
                       alt="Epic Trader logo"
-                      className="h-10 w-auto opacity-90 drop-shadow-[0_10px_30px_hsl(var(--primary)/0.20)] sm:h-12"
+                      className="h-14 w-auto opacity-90 drop-shadow-[0_10px_30px_hsl(var(--primary)/0.20)] sm:h-16"
                       loading="eager"
                       decoding="async"
                     />
                   </div>
                 ) : null}
                 <div className="mx-auto max-w-4xl text-center">
+                  {s.showLogo ? (
+                    <p className="mx-auto -mt-2 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
+                      {homeHeroIntro}
+                    </p>
+                  ) : null}
                   <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
                     <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.15)]" />
                     {s.eyebrow}
