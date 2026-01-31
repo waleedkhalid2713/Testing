@@ -15,7 +15,7 @@ import moduleForecast from "@/assets/module-forecast-daily.jpg";
 import moduleCalendar from "@/assets/module-calendar.jpg";
 import moduleRisk from "@/assets/module-risk.jpg";
 
-const SLIDE_INTERVAL_MS = 5500;
+const SLIDE_INTERVAL_MS = 10000;
 
 const slides = [
   {
