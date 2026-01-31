@@ -1,6 +1,7 @@
 import * as React from "react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
+import brandLogo from "@/assets/epic-trader-logo.png";
 
 const linkBase =
   "text-sm text-muted-foreground transition-colors hover:text-foreground";
@@ -10,10 +11,15 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center gap-4">
-        {/* Left: Logo */}
+        {/* Left: Brand */}
         <div className="flex shrink-0 items-center">
-          <NavLink to="/" className="text-sm font-semibold tracking-wide" aria-label="Epic Trader Home">
-            Epic Trader
+          <NavLink
+            to="/"
+            className="flex items-center gap-2 text-sm font-semibold tracking-wide"
+            aria-label="Epic Trader Home"
+          >
+            <img src={brandLogo} alt="Epic Trader" className="h-7 w-7" />
+            <span>Epic Trader</span>
           </NavLink>
         </div>
 
