@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ArrowRight, Pause, Play } from "lucide-react";
 
-import heroSlide1 from "@/assets/hero-slide-1.jpg";
+import Cover from "@/assets/hero-slide-1.jpg";
 import brandLogo from "@/assets/epic-trader-logo.png";
 
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ const slides: Array<{
   position: string;
 }> = [
   {
-    img: heroSlide1,
+    img: Cover,
     alt: "Trader workstation with multiple monitors showing market charts",
     eyebrow: "Process-first trading education",
     titleTop: "Create your",
@@ -37,7 +37,7 @@ const slides: Array<{
     position: "object-center",
   },
   {
-    img: heroSlide1,
+    img: Cover,
     alt: "Trader workstation with multiple monitors showing market charts",
     eyebrow: "Risk-first mentorship",
     titleTop: "Build",
@@ -47,7 +47,7 @@ const slides: Array<{
     position: "object-top",
   },
   {
-    img: heroSlide1,
+    img: Cover,
     alt: "Trader workstation with multiple monitors showing market charts",
     eyebrow: "Structured routine",
     titleTop: "Trade across",
