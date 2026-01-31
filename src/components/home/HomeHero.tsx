@@ -34,8 +34,8 @@ const slides: Array<{
     subtitle: "Daily forecasts, calendar awareness, and bootcamps designed for real-world consistency.",
   },
   {
-    img: heroSlide1,
-    alt: "Trader analyzing charts in a professional workspace",
+    img: moduleCalendar,
+    alt: "Abstract calendar blocks and chart line representing economic calendar planning",
     eyebrow: "Risk-first mentorship",
     titleTop: "Build",
     titleAccent: "Discipline",
@@ -43,8 +43,8 @@ const slides: Array<{
     subtitle: "Define risk, plan sessions, execute rules, and review with honesty—week after week.",
   },
   {
-    img: heroSlide1,
-    alt: "Forex chart analysis and market overview",
+    img: moduleForecast,
+    alt: "Abstract candlestick waves and grid representing daily market forecasts",
     eyebrow: "Structured routine",
     titleTop: "Trade across",
     titleAccent: "Markets",
