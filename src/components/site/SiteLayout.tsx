@@ -6,7 +6,7 @@ import { MarqueeTicker } from "@/components/site/MarqueeTicker";
 
 export function SiteLayout() {
   return (
-    <div className="min-h-screen bg-background bg-[image:var(--gradient-page)] bg-fixed text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />
 
       <main className="pb-14">
