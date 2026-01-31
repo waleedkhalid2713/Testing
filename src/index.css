@@ -56,6 +56,12 @@ All colors MUST be HSL.
     --gradient-hero: radial-gradient(1100px circle at 18% 12%, hsl(var(--primary) / 0.26), transparent 55%),
       radial-gradient(950px circle at 86% 26%, hsl(var(--accent-blue) / 0.18), transparent 60%),
       radial-gradient(700px circle at 55% 78%, hsl(var(--primary-glow) / 0.12), transparent 65%);
+
+    /* Site-wide background gradient (subtle, high-contrast, dark-first) */
+    --gradient-page: radial-gradient(1200px circle at 12% 8%, hsl(var(--accent-blue) / 0.16), transparent 52%),
+      radial-gradient(1000px circle at 88% 18%, hsl(var(--primary) / 0.18), transparent 54%),
+      radial-gradient(900px circle at 45% 85%, hsl(var(--primary-glow) / 0.12), transparent 58%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
     /* Buttons + CTA surfaces */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-blue)) 100%);
 
@@ -95,7 +101,11 @@ All colors MUST be HSL.
 
   body {
     font-family: var(--font-sans);
-    @apply bg-background text-foreground;
+    /* Keep bg color for fallback, but render a subtle gradient for punch */
+    background-color: hsl(var(--background));
+    background-image: var(--gradient-page);
+    background-attachment: fixed;
+    @apply text-foreground;
   }
 
   h1,
