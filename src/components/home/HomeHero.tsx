@@ -2,13 +2,11 @@ import * as React from "react";
 import { ArrowRight, Pause, Play } from "lucide-react";
 
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
-import epicTraderLogo from "@/assets/epic-trader-logo.png";
 
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import type { CarouselApi } from "@/components/ui/carousel";
 
-import { homeHeroIntro } from "@/content/homeHeroIntro";
 import { useCarouselAutoplay } from "@/components/home/useCarouselAutoplay";
 
 import moduleForecast from "@/assets/module-forecast-daily.jpg";
@@ -25,6 +23,7 @@ const slides: Array<{
   titleAccent: string;
   titleBottom: string;
   subtitle: string;
+  position: string;
 }> = [
   {
     img: heroSlide1,
@@ -34,24 +33,27 @@ const slides: Array<{
     titleAccent: "Trading Edge",
     titleBottom: "with Epic Trader",
     subtitle: "Daily forecasts, calendar awareness, and bootcamps designed for real-world consistency.",
+    position: "object-center",
   },
   {
-    img: heroSlide1,
-    alt: "Trader analyzing charts in a professional workspace",
+    img: moduleCalendar,
+    alt: "Abstract calendar blocks and chart line representing economic calendar planning",
     eyebrow: "Risk-first mentorship",
     titleTop: "Build",
     titleAccent: "Discipline",
     titleBottom: "before outcomes",
     subtitle: "Define risk, plan sessions, execute rules, and review with honesty—week after week.",
+    position: "object-top",
   },
   {
-    img: heroSlide1,
-    alt: "Forex chart analysis and market overview",
+    img: moduleForecast,
+    alt: "Abstract candlestick waves and grid representing daily market forecasts",
     eyebrow: "Structured routine",
     titleTop: "Trade across",
     titleAccent: "Markets",
     titleBottom: "with one framework",
     subtitle: "Forex, Crypto, Stocks, Indices, Commodities, and Macro—same process, different instruments.",
+    position: "object-bottom",
   },
 ];
 
@@ -94,14 +96,14 @@ export function HomeHero() {
         </Button>
         <CarouselContent>
           {slides.map((s) => (
-            <CarouselItem key={s.titleAccent}>
+            <CarouselItem key={s.titleAccent} className="relative min-h-[560px] sm:min-h-[640px]">
               {/* Background image */}
-              <div className="pointer-events-none absolute inset-0">
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
                 {s.img ? (
                   <img
                     src={s.img}
                     alt={s.alt}
-                    className="h-full w-full object-cover object-center opacity-55"
+                    className={`h-full w-full scale-105 object-cover ${s.position} opacity-55 blur-sm`}
                     loading="eager"
                   />
                 ) : (
@@ -114,20 +116,6 @@ export function HomeHero() {
 
               <div className="container relative py-16 sm:py-20">
                 <div className="mx-auto max-w-4xl text-center">
-                  {/* Cover (global) branding — not tied to a specific slide */}
-                  <div className="pointer-events-none mx-auto mb-6 flex max-w-4xl flex-col items-center justify-center gap-3">
-                    <img
-                      src={epicTraderLogo}
-                      alt="Epic Trader logo"
-                      className="h-16 w-auto opacity-90 drop-shadow-[0_10px_30px_hsl(var(--primary)/0.20)] sm:h-20"
-                      loading="eager"
-                      decoding="async"
-                    />
-                    <p className="mx-auto max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
-                      {homeHeroIntro}
-                    </p>
-                  </div>
-
                   <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
                     <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.15)]" />
                     {s.eyebrow}
