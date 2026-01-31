@@ -1,6 +1,5 @@
 import * as React from "react";
 
-import heroCover from "@/assets/forex-hero-cover.jpg";
 import heroClean from "@/assets/forex-hero-clean.jpg";
 import heroClassic from "@/assets/forex-hero.jpg";
 
@@ -13,10 +12,6 @@ function prefersReducedMotion() {
 }
 
 const slides = [
-  {
-    img: heroCover,
-    alt: "Forex trader analyzing charts on multiple monitors",
-  },
   {
     img: heroClean,
     alt: "Trader analyzing charts in a professional workspace",
