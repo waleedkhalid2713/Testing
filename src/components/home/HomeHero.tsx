@@ -104,15 +104,15 @@ export function HomeHero() {
                   <img
                     src={s.img}
                     alt={s.alt}
-                    className="h-full w-full scale-105 object-cover object-center opacity-55 blur-sm"
+                    className="h-full w-full object-cover object-center opacity-60 blur-[2px]"
                     loading="eager"
                   />
                 ) : (
                   <span className="absolute inset-0 bg-background" aria-hidden="true" />
                 )}
-                <div className="absolute inset-0 bg-background/55" />
+                <div className="absolute inset-0 bg-background/45" />
                 <div className="absolute inset-0" style={{ backgroundImage: "var(--gradient-hero)" }} />
-                <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/30 to-background" />
+                <div className="absolute inset-0 bg-gradient-to-b from-background/15 via-background/35 to-background" />
               </div>
 
               <div className="container relative py-16 sm:py-20">
