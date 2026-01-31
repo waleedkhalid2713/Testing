@@ -1,11 +1,10 @@
 import * as React from "react";
 
-type Theme = "dark" | "light";
+type Theme = "dark";
 
 export type ThemeProviderProps = {
   children: React.ReactNode;
   defaultTheme?: Theme;
-  storageKey?: string;
 };
 
 type ThemeContextValue = {
@@ -15,9 +14,9 @@ type ThemeContextValue = {
 
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
-function applyThemeClass(theme: Theme) {
+function applyThemeClass() {
   const root = document.documentElement;
-  root.classList.toggle("dark", theme === "dark");
+  root.classList.add("dark");
 }
 
 export function ThemeProvider({
@@ -31,8 +30,8 @@ export function ThemeProvider({
   }, []);
 
   React.useEffect(() => {
-    applyThemeClass(theme);
-  }, [theme]);
+    applyThemeClass();
+  }, []);
 
   const value = React.useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
 

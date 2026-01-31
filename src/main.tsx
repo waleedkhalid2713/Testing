@@ -5,7 +5,7 @@ import "./App.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
 createRoot(document.getElementById("root")!).render(
-  <ThemeProvider defaultTheme="dark" storageKey="epic-trader-theme">
+  <ThemeProvider>
     <App />
   </ThemeProvider>,
 );

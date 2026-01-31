@@ -8,63 +8,56 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Palette base (provided)
-      #C2F279 (lime)
-      #428C6A (green-teal)
-      #89BF7A (soft green)
-      #0D0D0D (near-black)
-    */
+    /* Institutional dark (single-theme) */
+    --background: 220 15% 6%;
+    --foreground: 0 0% 98%;
 
-    /* Light theme */
-    --background: 84 82% 71%; /* #C2F279 */
-    --foreground: 0 0% 5%; /* #0D0D0D */
+    --card: 220 14% 10%;
+    --card-foreground: 0 0% 98%;
 
-    --card: 107 35% 61%; /* #89BF7A */
-    --card-foreground: 0 0% 5%;
-
-    --popover: 107 35% 61%;
-    --popover-foreground: 0 0% 5%;
+    --popover: 220 14% 10%;
+    --popover-foreground: 0 0% 98%;
 
     /* Primary action (green-teal) */
-    --primary: 153 36% 40%; /* #428C6A */
+    --primary: 153 36% 40%;
     --primary-foreground: 0 0% 98%;
 
     /* Supporting tones */
-    --primary-glow: 107 35% 61%; /* #89BF7A */
-    --primary-ink: 0 0% 5%; /* #0D0D0D */
+    --primary-glow: 153 40% 55%;
+    --primary-ink: 0 0% 98%;
 
     /* Secondary surfaces/controls */
-    --secondary: 107 35% 61%;
-    --secondary-foreground: 0 0% 5%;
+    --secondary: 220 12% 16%;
+    --secondary-foreground: 0 0% 98%;
 
-    /* Muted/neutral (derived from palette hue) */
-    --muted: 84 50% 88%;
-    --muted-foreground: 0 0% 22%;
+    /* Muted/neutral */
+    --muted: 220 10% 14%;
+    --muted-foreground: 220 8% 72%;
 
     /* Accent interactions */
-    --accent: 153 36% 40%;
+    --accent: 220 12% 16%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 153 18% 34%;
-    --input: 153 18% 34%;
-    --ring: 84 82% 71%;
+    --border: 220 10% 22%;
+    --input: 220 10% 22%;
+    --ring: 153 36% 40%;
 
     --radius: 0.5rem;
 
     /* Gradients */
-    --gradient-hero: radial-gradient(1200px circle at 18% 10%, hsl(var(--primary) / 0.24), transparent 55%),
-      radial-gradient(900px circle at 86% 28%, hsl(var(--primary-glow) / 0.18), transparent 60%),
-      radial-gradient(700px circle at 55% 78%, hsl(var(--ring) / 0.14), transparent 65%);
+    --gradient-hero: radial-gradient(1200px circle at 18% 10%, hsl(var(--primary) / 0.22), transparent 55%),
+      radial-gradient(900px circle at 86% 28%, hsl(var(--primary-glow) / 0.16), transparent 60%),
+      radial-gradient(700px circle at 55% 78%, hsl(var(--ring) / 0.10), transparent 65%);
     /* Buttons + CTA surfaces */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)) 100%);
 
     /* Card surfaces */
     --gradient-card: linear-gradient(135deg, hsl(var(--primary)) / 0.20, hsl(var(--primary-glow)) / 0.35);
 
-    /* Card image tint (requested: #264F73) */
+    /* Card image tint (kept for any future use) */
     --card-image-tint: 208 50% 30%;
 
     --sidebar-background: 0 0% 98%;
@@ -84,58 +77,6 @@ All colors MUST be HSL.
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  .dark {
-    /* Dark theme */
-    --background: 0 0% 5%; /* #0D0D0D */
-    --foreground: 84 82% 71%; /* #C2F279 */
-
-    --card: 153 30% 14%;
-    --card-foreground: 84 82% 71%;
-
-    --popover: 153 30% 14%;
-    --popover-foreground: 84 82% 71%;
-
-    /* Primary action */
-    --primary: 153 36% 40%; /* #428C6A */
-    --primary-foreground: 0 0% 98%;
-
-    --primary-glow: 107 35% 61%; /* #89BF7A */
-    --primary-ink: 0 0% 5%; /* #0D0D0D */
-
-    --secondary: 153 36% 40%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 153 22% 18%;
-    --muted-foreground: 84 35% 70%;
-
-    --accent: 153 36% 40%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 153 22% 26%;
-    --input: 153 22% 26%;
-    --ring: 84 82% 71%;
-
-    /* Gradients */
-    --gradient-hero: radial-gradient(1200px circle at 18% 10%, hsl(var(--primary) / 0.18), transparent 55%),
-      radial-gradient(900px circle at 86% 28%, hsl(var(--primary-glow) / 0.14), transparent 60%),
-      radial-gradient(700px circle at 55% 78%, hsl(var(--ring) / 0.12), transparent 65%);
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)) 100%);
-    --gradient-card: linear-gradient(135deg, hsl(var(--primary)) / 0.18, hsl(var(--primary-glow)) / 0.30);
-
-    /* Card image tint (requested: #264F73) */
-    --card-image-tint: 208 50% 30%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
 }
 
 @layer base {
