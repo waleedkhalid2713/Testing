@@ -22,14 +22,14 @@ All colors MUST be HSL.
     --popover: 220 14% 10%;
     --popover-foreground: 0 0% 98%;
 
-    /* Primary action (teal) + secondary blue pop */
-    --primary: 153 36% 40%;
+    /* Cyberbank-like purple-led primary */
+    --primary: 268 92% 62%;
     --primary-foreground: 0 0% 98%;
 
     /* Supporting tones */
-    --primary-glow: 153 60% 52%;
-    --accent-blue: 206 92% 60%;
+    --primary-glow: 268 92% 72%;
     --accent-purple: 268 92% 68%;
+    --accent-blue: 206 92% 60%;
     --primary-ink: 0 0% 98%;
 
     /* Secondary surfaces/controls */
@@ -54,18 +54,20 @@ All colors MUST be HSL.
     --radius: 0.5rem;
 
     /* Gradients */
+    /* Hero glow: purple-forward like the reference */
     --gradient-hero: radial-gradient(1100px circle at 18% 12%, hsl(var(--primary) / 0.28), transparent 55%),
-      radial-gradient(980px circle at 86% 24%, hsl(var(--accent-blue) / 0.18), transparent 62%),
-      radial-gradient(820px circle at 54% 78%, hsl(var(--accent-purple) / 0.16), transparent 66%);
+      radial-gradient(980px circle at 86% 24%, hsl(var(--accent-purple) / 0.18), transparent 62%),
+      radial-gradient(820px circle at 54% 78%, hsl(var(--accent-blue) / 0.12), transparent 66%);
 
     /* Site-wide background gradient (subtle, high-contrast, dark-first) */
-    --gradient-page: radial-gradient(1300px circle at 12% 8%, hsl(var(--accent-blue) / 0.16), transparent 52%),
-      radial-gradient(980px circle at 88% 18%, hsl(var(--accent-purple) / 0.16), transparent 56%),
-      radial-gradient(1050px circle at 40% 86%, hsl(var(--primary-glow) / 0.12), transparent 58%),
-      radial-gradient(900px circle at 55% 45%, hsl(var(--primary) / 0.10), transparent 60%),
+    /* Page glow: subtle purple pools + light blue support */
+    --gradient-page: radial-gradient(1300px circle at 12% 8%, hsl(var(--accent-purple) / 0.18), transparent 52%),
+      radial-gradient(980px circle at 88% 18%, hsl(var(--primary) / 0.14), transparent 56%),
+      radial-gradient(1050px circle at 40% 86%, hsl(var(--accent-blue) / 0.10), transparent 58%),
+      radial-gradient(900px circle at 55% 45%, hsl(var(--primary-glow) / 0.10), transparent 60%),
       linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
     /* Buttons + CTA surfaces */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-purple)) 55%, hsl(var(--accent-blue)) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-purple)) 60%, hsl(var(--accent-blue)) 100%);
 
     /* Card surfaces */
     --gradient-card: linear-gradient(
@@ -77,8 +79,8 @@ All colors MUST be HSL.
     );
 
     /* Shadows */
-    --shadow-soft: 0 12px 40px -20px hsl(var(--accent-blue) / 0.45);
-    --shadow-glow: 0 18px 70px -28px hsl(var(--accent-blue) / 0.70);
+    --shadow-soft: 0 12px 40px -20px hsl(var(--accent-purple) / 0.40);
+    --shadow-glow: 0 18px 70px -28px hsl(var(--accent-purple) / 0.68);
 
     /* Card image tint (kept for any future use) */
     --card-image-tint: 208 50% 30%;
