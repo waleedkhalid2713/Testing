@@ -2,6 +2,7 @@ import * as React from "react";
 import { ArrowRight, Pause, Play } from "lucide-react";
 
 import heroSlide1 from "@/assets/hero-slide-1.jpg";
+import brandLogo from "@/assets/epic-trader-logo.png";
 
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
@@ -27,7 +28,7 @@ const slides: Array<{
 }> = [
   {
     img: heroSlide1,
-    alt: "Forex trader analyzing charts on multiple monitors",
+    alt: "Trader workstation with multiple monitors showing market charts",
     eyebrow: "Process-first trading education",
     titleTop: "Create your",
     titleAccent: "Trading Edge",
@@ -36,8 +37,8 @@ const slides: Array<{
     position: "object-center",
   },
   {
-    img: moduleCalendar,
-    alt: "Abstract calendar blocks and chart line representing economic calendar planning",
+    img: heroSlide1,
+    alt: "Trader workstation with multiple monitors showing market charts",
     eyebrow: "Risk-first mentorship",
     titleTop: "Build",
     titleAccent: "Discipline",
@@ -46,8 +47,8 @@ const slides: Array<{
     position: "object-top",
   },
   {
-    img: moduleForecast,
-    alt: "Abstract candlestick waves and grid representing daily market forecasts",
+    img: heroSlide1,
+    alt: "Trader workstation with multiple monitors showing market charts",
     eyebrow: "Structured routine",
     titleTop: "Trade across",
     titleAccent: "Markets",
@@ -103,7 +104,7 @@ export function HomeHero() {
                   <img
                     src={s.img}
                     alt={s.alt}
-                    className={`h-full w-full scale-105 object-cover ${s.position} opacity-55 blur-sm`}
+                    className="h-full w-full scale-105 object-cover object-center opacity-55 blur-sm"
                     loading="eager"
                   />
                 ) : (
@@ -116,10 +117,19 @@ export function HomeHero() {
 
               <div className="container relative py-16 sm:py-20">
                 <div className="mx-auto max-w-4xl text-center">
-                  <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
-                    <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.15)]" />
-                    {s.eyebrow}
-                  </p>
+                  <div className="mx-auto mb-5 flex flex-col items-center gap-3">
+                    <img
+                      src={brandLogo}
+                      alt="Epic Trader logo"
+                      className="h-14 w-auto drop-shadow-[0_10px_30px_hsl(var(--primary)/0.20)] sm:h-16"
+                      loading="eager"
+                      decoding="async"
+                    />
+                    <p className="inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+                      <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.15)]" />
+                      {s.eyebrow}
+                    </p>
+                  </div>
 
                   <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-6xl">
                     {s.titleTop}{" "}
