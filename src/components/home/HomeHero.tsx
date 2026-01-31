@@ -26,7 +26,6 @@ const slides = [
     titleAccent: "Trading Edge",
     titleBottom: "with Epic Trader",
     subtitle: "Daily forecasts, calendar awareness, and bootcamps designed for real-world consistency.",
-    showLogo: true,
   },
   {
     img: heroSlide1,
@@ -58,9 +57,11 @@ export function HomeHero() {
     <header className="relative overflow-hidden border-b">
       <Carousel
         className="relative"
-        opts={{ loop: true }}
+        opts={{ loop: true, startIndex: 0 }}
         setApi={(next) => {
           setApi(next);
+          // Ensure the carousel starts on Slide 1 (index 0).
+          next?.scrollTo?.(0);
         }}
       >
         {/* Manual navigation */}
@@ -100,23 +101,21 @@ export function HomeHero() {
               </div>
 
               <div className="container relative py-16 sm:py-20">
-                {s.showLogo ? (
-                  <div className="pointer-events-none mx-auto mb-6 flex max-w-4xl items-center justify-center">
+                <div className="mx-auto max-w-4xl text-center">
+                  {/* Cover (global) branding — not tied to a specific slide */}
+                  <div className="pointer-events-none mx-auto mb-6 flex max-w-4xl flex-col items-center justify-center gap-3">
                     <img
                       src={epicTraderLogo}
                       alt="Epic Trader logo"
-                      className="h-14 w-auto opacity-90 drop-shadow-[0_10px_30px_hsl(var(--primary)/0.20)] sm:h-16"
+                      className="h-16 w-auto opacity-90 drop-shadow-[0_10px_30px_hsl(var(--primary)/0.20)] sm:h-20"
                       loading="eager"
                       decoding="async"
                     />
-                  </div>
-                ) : null}
-                <div className="mx-auto max-w-4xl text-center">
-                  {s.showLogo ? (
-                    <p className="mx-auto -mt-2 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
+                    <p className="mx-auto max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
                       {homeHeroIntro}
                     </p>
-                  ) : null}
+                  </div>
+
                   <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
                     <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.15)]" />
                     {s.eyebrow}
