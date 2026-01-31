@@ -92,9 +92,9 @@ export function HomeHero() {
         </Button>
         <CarouselContent>
           {slides.map((s) => (
-            <CarouselItem key={s.titleAccent}>
+            <CarouselItem key={s.titleAccent} className="relative min-h-[560px] sm:min-h-[640px]">
               {/* Background image */}
-              <div className="pointer-events-none absolute inset-0">
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
                 {s.img ? (
                   <img
                     src={s.img}
