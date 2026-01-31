@@ -75,6 +75,8 @@ const Index = () => {
 
   return (
     <div>
+      {/* Keep a single H1 for SEO while hero overlay text is hidden/removed */}
+      <h1 className="sr-only">Epic Trader</h1>
       <HomeHero />
 
       <HomeServicesBlocks />
