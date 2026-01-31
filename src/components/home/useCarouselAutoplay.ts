@@ -39,12 +39,14 @@ export function useCarouselAutoplay(api: CarouselApi | undefined, { intervalMs, 
   React.useEffect(() => {
     if (!api) return;
 
-    // Schedule on mount + every time the selected slide changes.
-    schedule();
+    // Schedule after the first paint to avoid any "initialization" events
+    // causing a perceived instant skip on the first slide.
+    const raf = window.requestAnimationFrame(() => schedule());
     api.on("select", schedule);
     api.on("reInit", schedule);
 
     return () => {
+      window.cancelAnimationFrame(raf);
       clear();
       api.off("select", schedule);
       api.off("reInit", schedule);
