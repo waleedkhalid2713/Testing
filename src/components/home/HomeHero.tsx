@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ArrowRight } from "lucide-react";
 
-import heroCover from "@/assets/forex-hero-cover.jpg";
+import heroCover from "@/assets/forex-hero-cover-edited.jpg";
 import heroClean from "@/assets/forex-hero-clean.jpg";
 import heroClassic from "@/assets/forex-hero.jpg";
 
