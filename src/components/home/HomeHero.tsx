@@ -27,8 +27,7 @@ const slides: Array<{
   subtitle: string;
 }> = [
   {
-    // Slide 1: no background image (per request)
-    img: undefined,
+    img: heroSlide1,
     alt: "Forex trader analyzing charts on multiple monitors",
     eyebrow: "Process-first trading education",
     titleTop: "Create your",
