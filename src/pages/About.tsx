@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { PageHero } from "@/components/site/PageHero";
+import { Reveal } from "@/components/site/Reveal";
 import heroImage from "@/assets/forex-hero-clean.jpg";
 
 const About = () => {
@@ -15,7 +16,8 @@ const About = () => {
 
       <div className="container py-12">
         <section className="grid gap-6 lg:grid-cols-2">
-          <Card>
+          <Reveal>
+            <Card className="hover-glow">
             <CardHeader>
               <CardTitle>Teaching philosophy</CardTitle>
               <CardDescription>Structure beats hype.</CardDescription>
@@ -28,9 +30,11 @@ const About = () => {
                 We focus on decisions you control (risk, entries, exits, preparation)—not outcomes you can’t.
               </p>
             </CardContent>
-          </Card>
+            </Card>
+          </Reveal>
 
-          <Card>
+          <Reveal delayMs={120}>
+            <Card className="hover-glow">
             <CardHeader>
               <CardTitle>How Epic Trader teaches</CardTitle>
               <CardDescription>A repeatable weekly routine.</CardDescription>
@@ -42,7 +46,8 @@ const About = () => {
                 <li>Post-session review + journaling</li>
               </ul>
             </CardContent>
-          </Card>
+            </Card>
+          </Reveal>
         </section>
       </div>
     </div>

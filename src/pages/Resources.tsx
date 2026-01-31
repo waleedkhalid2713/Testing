@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { PageHero } from "@/components/site/PageHero";
+import { Reveal } from "@/components/site/Reveal";
 import heroImage from "@/assets/module-resources.jpg";
 
 const Resources = () => {
@@ -21,17 +22,19 @@ const Resources = () => {
             { title: "Risk Plan Checklist", desc: "Define risk before opportunity." },
             { title: "Weekly Review Framework", desc: "Iterate your rules with evidence." },
           ].map((r) => (
-            <Card key={r.title} className="overflow-hidden">
-              <CardHeader>
-                <CardTitle className="text-lg">{r.title}</CardTitle>
-                <CardDescription>{r.desc}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="secondary" size="sm">
-                  Coming soon
-                </Button>
-              </CardContent>
-            </Card>
+            <Reveal key={r.title}>
+              <Card className="overflow-hidden hover-glow">
+                <CardHeader>
+                  <CardTitle className="text-lg">{r.title}</CardTitle>
+                  <CardDescription>{r.desc}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button variant="secondary" size="sm">
+                    Coming soon
+                  </Button>
+                </CardContent>
+              </Card>
+            </Reveal>
           ))}
         </section>
       </div>

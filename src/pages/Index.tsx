@@ -5,6 +5,7 @@ import { HomeHero } from "@/components/home/HomeHero";
 import { FeatureCardGrid } from "@/components/home/FeatureCardGrid";
 import { FeatureDetailsDialog } from "@/components/home/FeatureDetailsDialog";
 import { featureDetails, type FeatureKey } from "@/components/home/features";
+import { Reveal } from "@/components/site/Reveal";
 
 import moduleForecast from "@/assets/module-forecast-daily.jpg";
 import moduleCalendar from "@/assets/module-calendar.jpg";
@@ -73,29 +74,33 @@ const Index = () => {
     <div>
       <HomeHero />
 
-      <FeatureCardGrid
-        items={gridItems}
-        onSelect={(k) => {
-          setActive(k);
-          setOpen(true);
-        }}
-      />
+      <Reveal>
+        <FeatureCardGrid
+          items={gridItems}
+          onSelect={(k) => {
+            setActive(k);
+            setOpen(true);
+          }}
+        />
+      </Reveal>
 
       <section className="border-t">
         <div className="container py-12">
-          <Card>
-            <CardHeader>
-              <CardTitle>Risk disclaimer</CardTitle>
-              <CardDescription>
-                Educational content only. Not financial advice. Trading involves risk.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="max-w-3xl text-sm text-muted-foreground">
-                Past performance is not indicative of future results. You are responsible for your decisions and risk.
-              </p>
-            </CardContent>
-          </Card>
+          <Reveal delayMs={120}>
+            <Card className="hover-glow">
+              <CardHeader>
+                <CardTitle>Risk disclaimer</CardTitle>
+                <CardDescription>
+                  Educational content only. Not financial advice. Trading involves risk.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="max-w-3xl text-sm text-muted-foreground">
+                  Past performance is not indicative of future results. You are responsible for your decisions and risk.
+                </p>
+              </CardContent>
+            </Card>
+          </Reveal>
         </div>
       </section>
 

@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { PageHero } from "@/components/site/PageHero";
+import { Reveal } from "@/components/site/Reveal";
 import heroImage from "@/assets/module-risk.jpg";
 
 const Legal = () => {
@@ -15,7 +16,8 @@ const Legal = () => {
 
       <div className="container py-12">
         <section className="grid gap-6">
-          <Card>
+          <Reveal>
+            <Card className="hover-glow">
             <CardHeader>
               <CardTitle>Disclaimer</CardTitle>
               <CardDescription>Trading involves risk.</CardDescription>
@@ -28,23 +30,28 @@ const Legal = () => {
                 Past performance is not indicative of future results. You are responsible for your own trading decisions.
               </p>
             </CardContent>
-          </Card>
+            </Card>
+          </Reveal>
 
-          <Card>
+          <Reveal delayMs={120}>
+            <Card className="hover-glow">
             <CardHeader>
               <CardTitle>Privacy Policy</CardTitle>
               <CardDescription>Placeholder.</CardDescription>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">Privacy policy content will be added in Phase 1.</CardContent>
-          </Card>
+            </Card>
+          </Reveal>
 
-          <Card>
+          <Reveal delayMs={200}>
+            <Card className="hover-glow">
             <CardHeader>
               <CardTitle>Terms of Use</CardTitle>
               <CardDescription>Placeholder.</CardDescription>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">Terms of use content will be added in Phase 1.</CardContent>
-          </Card>
+            </Card>
+          </Reveal>
         </section>
       </div>
     </div>
