@@ -1,7 +1,8 @@
 import * as React from "react";
 import { ArrowRight } from "lucide-react";
 
-import heroCover from "@/assets/forex-hero-cover-cleaned.jpg";
+import heroSlide1 from "@/assets/hero-slide-1.jpg";
+import epicTraderLogo from "@/assets/epic-trader-logo.png";
 import heroClean from "@/assets/forex-hero-clean.jpg";
 import heroClassic from "@/assets/forex-hero.jpg";
 
@@ -20,13 +21,14 @@ function prefersReducedMotion() {
 
 const slides = [
   {
-    img: heroCover,
+    img: heroSlide1,
     alt: "Forex trader analyzing charts on multiple monitors",
     eyebrow: "Process-first trading education",
     titleTop: "Create your",
     titleAccent: "Trading Edge",
     titleBottom: "with Epic Trader",
     subtitle: "Daily forecasts, calendar awareness, and bootcamps designed for real-world consistency.",
+    showLogo: true,
   },
   {
     img: heroClean,
@@ -84,6 +86,17 @@ export function HomeHero() {
               </div>
 
               <div className="container relative py-16 sm:py-20">
+                {s.showLogo ? (
+                  <div className="pointer-events-none mx-auto mb-6 flex max-w-4xl items-center justify-center">
+                    <img
+                      src={epicTraderLogo}
+                      alt="Epic Trader logo"
+                      className="h-10 w-auto opacity-90 drop-shadow-[0_10px_30px_hsl(var(--primary)/0.20)] sm:h-12"
+                      loading="eager"
+                      decoding="async"
+                    />
+                  </div>
+                ) : null}
                 <div className="mx-auto max-w-4xl text-center">
                   <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
                     <span className="inline-flex h-2 w-2 rounded-full bg-primary shadow-[0_0_0_6px_hsl(var(--primary)/0.15)]" />
