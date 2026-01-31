@@ -17,9 +17,18 @@ import moduleRisk from "@/assets/module-risk.jpg";
 
 const SLIDE_INTERVAL_MS = 10000;
 
-const slides = [
+const slides: Array<{
+  img?: string;
+  alt: string;
+  eyebrow: string;
+  titleTop: string;
+  titleAccent: string;
+  titleBottom: string;
+  subtitle: string;
+}> = [
   {
-    img: heroSlide1,
+    // Slide 1: no background image (per request)
+    img: undefined,
     alt: "Forex trader analyzing charts on multiple monitors",
     eyebrow: "Process-first trading education",
     titleTop: "Create your",
@@ -89,12 +98,16 @@ export function HomeHero() {
             <CarouselItem key={s.titleAccent}>
               {/* Background image */}
               <div className="pointer-events-none absolute inset-0">
-                <img
-                  src={s.img}
-                  alt={s.alt}
-                  className="h-full w-full object-cover object-center opacity-55"
-                  loading="eager"
-                />
+                {s.img ? (
+                  <img
+                    src={s.img}
+                    alt={s.alt}
+                    className="h-full w-full object-cover object-center opacity-55"
+                    loading="eager"
+                  />
+                ) : (
+                  <span className="absolute inset-0 bg-background" aria-hidden="true" />
+                )}
                 <div className="absolute inset-0 bg-background/55" />
                 <div className="absolute inset-0" style={{ backgroundImage: "var(--gradient-hero)" }} />
                 <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/30 to-background" />
