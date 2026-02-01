@@ -8,6 +8,20 @@ const linkBase =
 const linkActive = "text-foreground md:text-foreground";
 
 export function SiteHeader() {
+  const [isSignedIn, setIsSignedIn] = React.useState(false);
+
+  React.useEffect(() => {
+    const isAdmin = window.localStorage.getItem("epic-trader-admin") === "true";
+    const isUser = window.localStorage.getItem("epic-trader-user") === "true";
+    setIsSignedIn(isAdmin || isUser);
+  }, []);
+
+  const handleSignOut = () => {
+    window.localStorage.removeItem("epic-trader-admin");
+    window.localStorage.removeItem("epic-trader-user");
+    setIsSignedIn(false);
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex flex-wrap items-center gap-4 py-3 md:h-16 md:flex-nowrap md:py-0">
@@ -47,12 +61,20 @@ export function SiteHeader() {
 
         {/* Right: CTA */}
         <div className="ml-auto flex items-center justify-end gap-2">
-          <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
-            <a href="/sign-up">Sign Up</a>
-          </Button>
-          <Button asChild size="sm" variant="outline" className="rounded-full px-5">
-            <a href="/admin-login">Admin Sign In</a>
-          </Button>
+          {isSignedIn ? (
+            <Button size="sm" variant="outline" className="rounded-full px-5" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+          ) : (
+            <>
+              <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
+                <a href="/sign-up">Sign Up</a>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-full px-5">
+                <a href="/admin-login">Sign In</a>
+              </Button>
+            </>
+          )}
           <Button asChild size="sm" className="rounded-full px-5">
             <a href="/bootcamp">Join Bootcamp</a>
           </Button>

@@ -51,6 +51,8 @@ const DailyForecastAdmin = () => {
   const [date, setDate] = useState("");
   const [session, setSession] = useState("London");
   const [time, setTime] = useState("");
+  const [savedAt, setSavedAt] = useState("");
+  const [editingForecastId, setEditingForecastId] = useState<string | null>(null);
   const [store, setStore] = useState<ForecastStore>({ markets: [], forecasts: [] });
   const navigate = useNavigate();
 
@@ -203,7 +205,7 @@ const DailyForecastAdmin = () => {
     }
 
     const payload: ForecastEntry = {
-      id: crypto.randomUUID(),
+      id: editingForecastId ?? crypto.randomUUID(),
       marketId: selectedMarketId,
       pair: selectedPair,
       date,
@@ -213,12 +215,40 @@ const DailyForecastAdmin = () => {
       structure,
       poi,
       notes,
-      savedAt: new Date().toISOString(),
+      savedAt: savedAt ? new Date(savedAt).toISOString() : new Date().toISOString(),
     };
+
+    const nextForecasts = editingForecastId
+      ? store.forecasts.map((forecast) => (forecast.id === editingForecastId ? payload : forecast))
+      : [payload, ...store.forecasts];
 
     const next = {
       ...store,
-      forecasts: [payload, ...store.forecasts],
+      forecasts: nextForecasts,
+    };
+    persistStore(next);
+    setEditingForecastId(null);
+    setSavedAt("");
+  };
+
+  const handleEditForecast = (forecast: ForecastEntry) => {
+    setEditingForecastId(forecast.id);
+    setSelectedMarketId(forecast.marketId);
+    setSelectedPair(forecast.pair);
+    setDate(forecast.date);
+    setSession(forecast.session);
+    setTime(forecast.time);
+    setStructure(forecast.structure);
+    setPoi(forecast.poi);
+    setNotes(forecast.notes);
+    setPreviewUrl(forecast.imageDataUrl ?? null);
+    setSavedAt(forecast.savedAt ? new Date(forecast.savedAt).toISOString().slice(0, 16) : "");
+  };
+
+  const handleDeleteForecast = (forecastId: string) => {
+    const next = {
+      ...store,
+      forecasts: store.forecasts.filter((forecast) => forecast.id !== forecastId),
     };
     persistStore(next);
   };
@@ -429,6 +459,17 @@ const DailyForecastAdmin = () => {
                       onChange={(event) => setTime(event.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="forecast-saved-at">
+                      Saved time (admin only)
+                    </label>
+                    <Input
+                      id="forecast-saved-at"
+                      type="datetime-local"
+                      value={savedAt}
+                      onChange={(event) => setSavedAt(event.target.value)}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -489,7 +530,7 @@ const DailyForecastAdmin = () => {
                 </div>
 
                 <Button type="button" className="rounded-full px-6" onClick={handleSaveForecast}>
-                  Save forecast
+                  {editingForecastId ? "Update forecast" : "Save forecast"}
                 </Button>
               </CardContent>
             </Card>
@@ -540,6 +581,14 @@ const DailyForecastAdmin = () => {
                         <div>
                           <p className="text-xs uppercase text-muted-foreground">Pair</p>
                           <p className="text-sm font-semibold">{forecast.pair}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="secondary" onClick={() => handleEditForecast(forecast)}>
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleDeleteForecast(forecast.id)}>
+                            Remove
+                          </Button>
                         </div>
                         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                           <span>Date: {forecast.date || "N/A"}</span>
