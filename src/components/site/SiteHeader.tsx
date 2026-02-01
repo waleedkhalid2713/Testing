@@ -83,10 +83,10 @@ export function SiteHeader() {
           ) : (
             <>
               <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
-                <a href="/sign-up">Sign Up</a>
+                <a href="/auth?mode=signup">Sign Up</a>
               </Button>
               <Button asChild size="sm" variant="outline" className="rounded-full px-5">
-                <a href="/admin-login">Sign In</a>
+                <a href="/auth">Sign In</a>
               </Button>
             </>
           )}
