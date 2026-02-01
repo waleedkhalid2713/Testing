@@ -6,17 +6,9 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { MarqueeTicker } from "@/components/site/MarqueeTicker";
 
 export function SiteLayout() {
-  const [showIntro, setShowIntro] = React.useState(false);
-
-  React.useEffect(() => {
-    const hasSeenIntro = window.localStorage.getItem("epic-trader-intro-seen");
-    if (!hasSeenIntro) {
-      setShowIntro(true);
-    }
-  }, []);
+  const [showIntro, setShowIntro] = React.useState(true);
 
   const handleCloseIntro = () => {
-    window.localStorage.setItem("epic-trader-intro-seen", "true");
     setShowIntro(false);
   };
 
