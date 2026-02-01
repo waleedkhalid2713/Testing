@@ -1,19 +1,27 @@
 # Codex Git Setup
 
-This repo was missing a Git remote and a `main` branch, which can prevent automation
-(Codex or CI) from applying or pushing changes. Use the steps below to ensure the
-expected Git configuration is present.
+Automation can fail if the repo lacks an `origin` remote or is not on the expected
+`main` branch. Use the script below to ensure the repository is configured.
 
 ## Recommended setup
 
 ```sh
-git checkout -B main
-git remote add origin https://github.com/waleedkhalid2713/friendly-greetings.git
+./scripts/ensure-git-setup.sh
 ```
 
-## Verify configuration
+## What the script does
+
+- Switches to (or creates) the `main` branch.
+- Adds the `origin` remote if missing.
+- Prints `git status -sb` and `git remote -v` so you can verify.
+
+## Manual steps
+
+If you prefer to do it manually:
 
 ```sh
+git checkout -B main
+git remote add origin https://github.com/waleedkhalid2713/friendly-greetings.git
 git status -sb
 git remote -v
 ```
