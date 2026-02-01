@@ -1,4 +1,5 @@
 import * as React from "react";
+import watermarkLogo from "@/assets/epic-trader-logo.png";
 
 type IntroModalProps = {
   isOpen: boolean;
@@ -14,6 +15,14 @@ export function IntroModal({ isOpen, onClose }: IntroModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" aria-hidden="true" />
       <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border bg-card shadow-xl">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <img
+            src={watermarkLogo}
+            alt=""
+            aria-hidden="true"
+            className="w-[85%] max-w-3xl opacity-10"
+          />
+        </div>
         <div className="flex items-start justify-between border-b px-6 py-4">
           <div>
             <p className="text-sm font-semibold text-muted-foreground">About Epic Trader</p>
