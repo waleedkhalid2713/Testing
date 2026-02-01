@@ -17,6 +17,7 @@ import AdminLogin from "@/pages/AdminLogin";
 import SignUp from "@/pages/SignUp";
 import AdminDashboard from "@/pages/AdminDashboard";
 import { RequireAdmin } from "@/components/auth/RequireAdmin";
+import Auth from "@/pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
             />
             <Route path="/forecast" element={<DailyForecastView />} />
             <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/sign-up" element={<SignUp />} />
             <Route
               path="/admin-dashboard"
