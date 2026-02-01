@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { PageHero } from "@/components/site/PageHero";
 import heroImage from "@/assets/module-forecast-daily.jpg";
 
@@ -30,16 +32,67 @@ type ForecastStore = {
 };
 
 const STORAGE_KEY = "epic-trader-forecast-store";
+const ADMIN_KEY = "epic-trader-admin";
 
 const DailyForecastView = () => {
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  const store = stored ? (JSON.parse(stored) as ForecastStore) : { markets: [], forecasts: [] };
-
-  const [marketId, setMarketId] = useState(store.markets[0]?.id ?? "");
-  const [pair, setPair] = useState(store.markets[0]?.pairs[0] ?? "");
+  const [store, setStore] = useState<ForecastStore>({ markets: [], forecasts: [] });
+  const [marketId, setMarketId] = useState("");
+  const [pair, setPair] = useState("");
   const [date, setDate] = useState("");
   const [session, setSession] = useState("");
   const [time, setTime] = useState("");
+  const [marketName, setMarketName] = useState("");
+  const [pairName, setPairName] = useState("");
+  const [pairMarketId, setPairMarketId] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as ForecastStore;
+      setStore(parsed);
+      setMarketId(parsed.markets[0]?.id ?? "");
+      setPair(parsed.markets[0]?.pairs[0] ?? "");
+      setPairMarketId(parsed.markets[0]?.id ?? "");
+    }
+    const adminFlag = window.localStorage.getItem(ADMIN_KEY) === "true";
+    const searchParams = new URLSearchParams(window.location.search);
+    setIsAdmin(adminFlag || searchParams.get("admin") === "1");
+  }, []);
+
+  const persistStore = (next: ForecastStore) => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setStore(next);
+  };
+
+  const handleAddMarket = () => {
+    if (!marketName.trim()) {
+      return;
+    }
+    const newMarket: Market = {
+      id: crypto.randomUUID(),
+      name: marketName.trim(),
+      pairs: [],
+    };
+    const next = { ...store, markets: [...store.markets, newMarket] };
+    persistStore(next);
+    setMarketName("");
+    setMarketId(newMarket.id);
+    setPairMarketId(newMarket.id);
+  };
+
+  const handleAddPair = () => {
+    if (!pairMarketId || !pairName.trim()) {
+      return;
+    }
+    const nextMarkets = store.markets.map((market) =>
+      market.id === pairMarketId && !market.pairs.includes(pairName.trim())
+        ? { ...market, pairs: [...market.pairs, pairName.trim()] }
+        : market,
+    );
+    persistStore({ ...store, markets: nextMarkets });
+    setPairName("");
+  };
 
   const availablePairs = useMemo(() => {
     const market = store.markets.find((m) => m.id === marketId);
@@ -167,6 +220,61 @@ const DailyForecastView = () => {
               />
             </div>
           </CardContent>
+          {isAdmin ? (
+            <CardContent className="border-t pt-6">
+              <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_auto]">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="admin-market">
+                    Add trading market
+                  </label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="admin-market"
+                      placeholder="Forex, Indices, Commodities..."
+                      value={marketName}
+                      onChange={(event) => setMarketName(event.target.value)}
+                    />
+                    <Button type="button" onClick={handleAddMarket}>
+                      Add Market
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="admin-pair">
+                    Add pair
+                  </label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <select
+                      className="h-10 rounded-md border bg-background px-3 text-sm"
+                      value={pairMarketId}
+                      onChange={(event) => setPairMarketId(event.target.value)}
+                    >
+                      <option value="">Select market</option>
+                      {store.markets.map((market) => (
+                        <option key={market.id} value={market.id}>
+                          {market.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Input
+                      id="admin-pair"
+                      placeholder="EUR/USD, GBP/JPY..."
+                      value={pairName}
+                      onChange={(event) => setPairName(event.target.value)}
+                    />
+                    <Button type="button" variant="secondary" onClick={handleAddPair}>
+                      Add Pair
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-end justify-start">
+                  <Button asChild className="rounded-full px-6">
+                    <a href="/daily-forecast">Add Forecast</a>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          ) : null}
         </Card>
 
         <div className="space-y-6">

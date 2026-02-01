@@ -63,6 +63,7 @@ const DailyForecastAdmin = () => {
   }, [selectedMarket, selectedPair]);
 
   useEffect(() => {
+    window.localStorage.setItem("epic-trader-admin", "true");
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as ForecastStore;
