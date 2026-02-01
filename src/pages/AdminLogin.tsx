@@ -22,7 +22,7 @@ const AdminLogin = () => {
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       window.localStorage.setItem(ADMIN_KEY, "true");
       setError("");
-      navigate("/daily-forecast");
+      navigate("/admin-dashboard");
       return;
     }
     setError("Invalid credentials. Please try again.");

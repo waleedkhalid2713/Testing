@@ -15,6 +15,7 @@ import DailyForecastAdmin from "@/pages/DailyForecastAdmin";
 import DailyForecastView from "@/pages/DailyForecastView";
 import AdminLogin from "@/pages/AdminLogin";
 import SignUp from "@/pages/SignUp";
+import AdminDashboard from "@/pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/forecast" element={<DailyForecastView />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/sign-up" element={<SignUp />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

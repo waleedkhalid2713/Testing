@@ -25,6 +25,7 @@ type ForecastEntry = {
   structure: string;
   poi: string;
   notes: string;
+  result?: string;
   imageDataUrl?: string;
   savedAt: string;
 };
@@ -43,6 +44,7 @@ const DailyForecastAdmin = () => {
   const [structure, setStructure] = useState("");
   const [poi, setPoi] = useState("");
   const [notes, setNotes] = useState("");
+  const [result, setResult] = useState("");
   const [marketName, setMarketName] = useState("");
   const [pairName, setPairName] = useState("");
   const [selectedMarketId, setSelectedMarketId] = useState("");
@@ -215,6 +217,7 @@ const DailyForecastAdmin = () => {
       structure,
       poi,
       notes,
+      result,
       savedAt: savedAt ? new Date(savedAt).toISOString() : new Date().toISOString(),
     };
 
@@ -241,6 +244,7 @@ const DailyForecastAdmin = () => {
     setStructure(forecast.structure);
     setPoi(forecast.poi);
     setNotes(forecast.notes);
+    setResult(forecast.result ?? "");
     setPreviewUrl(forecast.imageDataUrl ?? null);
     setSavedAt(forecast.savedAt ? new Date(forecast.savedAt).toISOString().slice(0, 16) : "");
   };
@@ -528,6 +532,18 @@ const DailyForecastAdmin = () => {
                     onChange={(event) => setNotes(event.target.value)}
                   />
                 </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium" htmlFor="forecast-result">
+                    Forecast result
+                  </label>
+                  <Textarea
+                    id="forecast-result"
+                    placeholder="Post the result for this forecast."
+                    rows={3}
+                    value={result}
+                    onChange={(event) => setResult(event.target.value)}
+                  />
+                </div>
 
                 <Button type="button" className="rounded-full px-6" onClick={handleSaveForecast}>
                   {editingForecastId ? "Update forecast" : "Save forecast"}
@@ -606,6 +622,10 @@ const DailyForecastAdmin = () => {
                         <div>
                           <p className="text-sm font-semibold">Additional notes</p>
                           <p className="text-sm text-muted-foreground">{forecast.notes}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">Result</p>
+                          <p className="text-sm text-muted-foreground">{forecast.result || "Pending"}</p>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           Saved {new Date(forecast.savedAt).toLocaleString()}

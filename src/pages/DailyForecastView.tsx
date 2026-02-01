@@ -22,6 +22,7 @@ type ForecastEntry = {
   structure: string;
   poi: string;
   notes: string;
+  result?: string;
   imageDataUrl?: string;
   savedAt: string;
 };
@@ -308,6 +309,10 @@ const DailyForecastView = () => {
                       <div>
                         <p className="text-sm font-semibold">Additional notes</p>
                         <p className="text-sm text-muted-foreground">{forecast.notes}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">Result</p>
+                        <p className="text-sm text-muted-foreground">{forecast.result || "Pending"}</p>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Saved {new Date(forecast.savedAt).toLocaleString()}
