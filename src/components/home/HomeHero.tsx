@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ArrowRight, Pause, Play } from "lucide-react";
 
-import Cover from "@/assets/hero-slide-1.jpg";
+import Cover from "@/assets/Cover.png";
 import brandLogo from "@/assets/epic-trader-logo.png";
 
 import { Button } from "@/components/ui/button";
