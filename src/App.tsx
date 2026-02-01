@@ -11,6 +11,9 @@ import About from "@/pages/About";
 import Resources from "@/pages/Resources";
 import Contact from "@/pages/Contact";
 import Legal from "@/pages/Legal";
+import DailyForecastAdmin from "@/pages/DailyForecastAdmin";
+import DailyForecastView from "@/pages/DailyForecastView";
+import AdminLogin from "@/pages/AdminLogin";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +31,9 @@ const App = () => (
             <Route path="/resources" element={<Resources />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/legal" element={<Legal />} />
+            <Route path="/daily-forecast" element={<DailyForecastAdmin />} />
+            <Route path="/forecast" element={<DailyForecastView />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
