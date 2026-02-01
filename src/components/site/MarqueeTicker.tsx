@@ -13,7 +13,7 @@ export function MarqueeTicker({ text = DISCLAIMER_TEXT }: { text?: string }) {
       <div className="overflow-hidden">
         <div className="marquee flex w-max gap-10 py-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <p key={i} className="whitespace-nowrap text-xs text-muted-foreground">
+            <p key={i} className="whitespace-nowrap text-sm font-semibold text-primary sm:text-base">
               {text}
             </p>
           ))}
