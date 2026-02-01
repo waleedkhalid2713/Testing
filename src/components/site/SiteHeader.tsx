@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import brandLogo from "@/assets/epic-trader-logo.png";
 
 const linkBase =
-  "text-sm text-muted-foreground transition-colors hover:text-foreground";
+  "text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground";
 const linkActive = "text-foreground";
 
 export function SiteHeader() {
@@ -24,7 +24,7 @@ export function SiteHeader() {
         </div>
 
         {/* Center: Navigation */}
-        <nav className="hidden flex-1 items-center justify-center gap-6 md:flex" aria-label="Primary">
+        <nav className="ml-6 hidden items-center gap-6 md:flex" aria-label="Primary">
           <NavLink to="/bootcamp" className={linkBase} activeClassName={linkActive}>
             Bootcamp
           </NavLink>
@@ -43,7 +43,7 @@ export function SiteHeader() {
         </nav>
 
         {/* Right: CTA */}
-        <div className="flex flex-1 items-center justify-end gap-2">
+        <div className="ml-auto flex items-center justify-end gap-2">
           <Button asChild size="sm" className="rounded-full px-5">
             <a href="/bootcamp">Join Bootcamp</a>
           </Button>
