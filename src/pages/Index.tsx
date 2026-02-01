@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,13 @@ const Index = () => {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<FeatureKey>("forecast");
   const navigate = useNavigate();
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    const isAdmin = window.localStorage.getItem("epic-trader-admin") === "true";
+    const isUser = window.localStorage.getItem("epic-trader-user") === "true";
+    setIsSignedIn(isAdmin || isUser);
+  }, []);
 
   const gridItems = useMemo(
     () =>
@@ -100,6 +107,10 @@ const Index = () => {
               <FeatureCardGrid
                 items={gridItems}
                 onSelect={(k) => {
+                  if (!isSignedIn) {
+                    navigate("/sign-up");
+                    return;
+                  }
                   if (k === "forecast") {
                     navigate("/forecast");
                     return;

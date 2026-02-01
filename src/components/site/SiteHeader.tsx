@@ -47,6 +47,12 @@ export function SiteHeader() {
 
         {/* Right: CTA */}
         <div className="ml-auto flex items-center justify-end gap-2">
+          <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
+            <a href="/sign-up">Sign Up</a>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="rounded-full px-5">
+            <a href="/admin-login">Admin Sign In</a>
+          </Button>
           <Button asChild size="sm" className="rounded-full px-5">
             <a href="/bootcamp">Join Bootcamp</a>
           </Button>
