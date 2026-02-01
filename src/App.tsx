@@ -16,6 +16,7 @@ import DailyForecastView from "@/pages/DailyForecastView";
 import AdminLogin from "@/pages/AdminLogin";
 import SignUp from "@/pages/SignUp";
 import AdminDashboard from "@/pages/AdminDashboard";
+import { RequireAdmin } from "@/components/auth/RequireAdmin";
 
 const queryClient = new QueryClient();
 
@@ -33,11 +34,25 @@ const App = () => (
             <Route path="/resources" element={<Resources />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/legal" element={<Legal />} />
-            <Route path="/daily-forecast" element={<DailyForecastAdmin />} />
+            <Route
+              path="/daily-forecast"
+              element={
+                <RequireAdmin>
+                  <DailyForecastAdmin />
+                </RequireAdmin>
+              }
+            />
             <Route path="/forecast" element={<DailyForecastView />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/sign-up" element={<SignUp />} />
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route
+              path="/admin-dashboard"
+              element={
+                <RequireAdmin>
+                  <AdminDashboard />
+                </RequireAdmin>
+              }
+            />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
