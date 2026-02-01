@@ -12,6 +12,7 @@ import Resources from "@/pages/Resources";
 import Contact from "@/pages/Contact";
 import Legal from "@/pages/Legal";
 import DailyForecastAdmin from "@/pages/DailyForecastAdmin";
+import DailyForecastView from "@/pages/DailyForecastView";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/legal" element={<Legal />} />
             <Route path="/daily-forecast" element={<DailyForecastAdmin />} />
+            <Route path="/forecast" element={<DailyForecastView />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

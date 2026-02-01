@@ -101,7 +101,7 @@ const Index = () => {
                 items={gridItems}
                 onSelect={(k) => {
                   if (k === "forecast") {
-                    navigate("/daily-forecast");
+                    navigate("/forecast");
                     return;
                   }
                   setActive(k);
