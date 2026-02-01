@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 import { PageHero } from "@/components/site/PageHero";
 import { Reveal } from "@/components/site/Reveal";
-import heroImage from "@/assets/hero-slide-1.jpg";
+import Cover from "@/assets/Cover.png";
 
 const About = () => {
   return (
@@ -10,7 +10,7 @@ const About = () => {
       <PageHero
         title="About"
         subtitle="Epic Trader teaches discipline and risk management—process-based, not profit-based."
-        imageSrc={heroImage}
+        imageSrc={Cover}
         imageAlt="Trader analyzing charts in a professional workspace"
       />
 
