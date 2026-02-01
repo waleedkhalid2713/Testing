@@ -56,8 +56,7 @@ const DailyForecastView = () => {
       setPairMarketId(parsed.markets[0]?.id ?? "");
     }
     const adminFlag = window.localStorage.getItem(ADMIN_KEY) === "true";
-    const searchParams = new URLSearchParams(window.location.search);
-    setIsAdmin(adminFlag || searchParams.get("admin") === "1");
+    setIsAdmin(adminFlag);
   }, []);
 
   const persistStore = (next: ForecastStore) => {

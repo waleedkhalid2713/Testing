@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,7 @@ type ForecastStore = {
 };
 
 const STORAGE_KEY = "epic-trader-forecast-store";
+const ADMIN_KEY = "epic-trader-admin";
 
 const DailyForecastAdmin = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -50,6 +52,7 @@ const DailyForecastAdmin = () => {
   const [session, setSession] = useState("London");
   const [time, setTime] = useState("");
   const [store, setStore] = useState<ForecastStore>({ markets: [], forecasts: [] });
+  const navigate = useNavigate();
 
   const selectedMarket = useMemo(
     () => store.markets.find((m) => m.id === selectedMarketId) ?? null,
@@ -63,7 +66,11 @@ const DailyForecastAdmin = () => {
   }, [selectedMarket, selectedPair]);
 
   useEffect(() => {
-    window.localStorage.setItem("epic-trader-admin", "true");
+    const isAdmin = window.localStorage.getItem(ADMIN_KEY) === "true";
+    if (!isAdmin) {
+      navigate("/admin-login");
+      return;
+    }
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as ForecastStore;
