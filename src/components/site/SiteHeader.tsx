@@ -4,18 +4,18 @@ import { Button } from "@/components/ui/button";
 import brandLogo from "@/assets/epic-trader-logo.png";
 
 const linkBase =
-  "text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground";
-const linkActive = "text-foreground";
+  "text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground md:text-base";
+const linkActive = "text-foreground md:text-foreground";
 
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center gap-4">
+      <div className="container flex flex-wrap items-center gap-4 py-3 md:h-16 md:flex-nowrap md:py-0">
         {/* Left: Brand */}
         <div className="flex shrink-0 items-center">
           <NavLink
             to="/"
-            className="flex items-center gap-2 text-sm font-semibold tracking-wide"
+            className="flex items-center gap-2 text-sm font-semibold tracking-wide md:text-base"
             aria-label="Epic Trader Home"
           >
             <img src={brandLogo} alt="Epic Trader" className="h-7 w-7" />
@@ -23,8 +23,11 @@ export function SiteHeader() {
           </NavLink>
         </div>
 
-        {/* Center: Navigation */}
-        <nav className="ml-6 hidden items-center gap-6 md:flex" aria-label="Primary">
+        {/* Primary: Navigation */}
+        <nav
+          className="order-3 flex w-full flex-wrap items-center gap-4 sm:gap-6 md:order-none md:ml-6 md:w-auto"
+          aria-label="Primary"
+        >
           <NavLink to="/bootcamp" className={linkBase} activeClassName={linkActive}>
             Bootcamp
           </NavLink>
