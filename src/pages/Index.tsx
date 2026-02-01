@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HomeHero } from "@/components/home/HomeHero";
@@ -19,6 +20,7 @@ import moduleResources from "@/assets/module-resources.jpg";
 const Index = () => {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<FeatureKey>("forecast");
+  const navigate = useNavigate();
 
   const gridItems = useMemo(
     () =>
@@ -98,6 +100,10 @@ const Index = () => {
               <FeatureCardGrid
                 items={gridItems}
                 onSelect={(k) => {
+                  if (k === "forecast") {
+                    navigate("/daily-forecast");
+                    return;
+                  }
                   setActive(k);
                   setOpen(true);
                 }}
