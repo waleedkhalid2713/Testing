@@ -1,12 +1,38 @@
 import * as React from "react";
 import { Outlet } from "react-router-dom";
 
+import { IntroModal } from "@/components/site/IntroModal";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { MarqueeTicker } from "@/components/site/MarqueeTicker";
 
 export function SiteLayout() {
+  const [showIntro, setShowIntro] = React.useState(true);
+
+  const handleCloseIntro = () => {
+    setShowIntro(false);
+  };
+
+  React.useEffect(() => {
+    const visitsKey = "epic-trader-visits";
+    const storedVisits = window.localStorage.getItem(visitsKey);
+    const visits = storedVisits ? (JSON.parse(storedVisits) as Array<Record<string, string>>) : [];
+    const userData = window.localStorage.getItem("epic-trader-users");
+    const users = userData ? (JSON.parse(userData) as Array<Record<string, string>>) : [];
+    const currentUser = users[0];
+    const entry = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      country: currentUser?.country ?? "Unknown",
+      age: currentUser?.age ?? "Unknown",
+      profession: currentUser?.profession ?? "Unknown",
+      page: window.location.pathname,
+    };
+    window.localStorage.setItem(visitsKey, JSON.stringify([entry, ...visits]));
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <IntroModal isOpen={showIntro} onClose={handleCloseIntro} />
       <SiteHeader />
 
       <main className="pb-14">

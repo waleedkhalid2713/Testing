@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HomeHero } from "@/components/home/HomeHero";
@@ -19,12 +20,24 @@ import moduleResources from "@/assets/module-resources.jpg";
 const Index = () => {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<FeatureKey>("forecast");
+  const navigate = useNavigate();
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
-  const gridItems = useMemo(
-    () =>
-      (Object.keys(featureDetails) as FeatureKey[]).map((k) => {
-        const d = featureDetails[k];
-        const Icon = d.icon;
+  useEffect(() => {
+    const isAdmin = window.localStorage.getItem("epic-trader-admin") === "true";
+    const isUser = window.localStorage.getItem("epic-trader-user") === "true";
+    setIsSignedIn(isAdmin || isUser);
+  }, []);
+
+  const gridItems = useMemo(() => {
+    const storedMetrics = window.localStorage.getItem("epic-trader-content-metrics");
+    const metrics = storedMetrics
+      ? (JSON.parse(storedMetrics) as Array<{ key: FeatureKey; label: string; clicks: number }>)
+      : [];
+
+    return (Object.keys(featureDetails) as FeatureKey[]).map((k) => {
+      const d = featureDetails[k];
+      const Icon = d.icon;
 
         const cover =
           k === "forecast"
@@ -52,26 +65,32 @@ const Index = () => {
                       alt: "Abstract checklist tiles representing downloadable trading resources and templates",
                     };
 
-        return {
-          k,
-          title: d.title,
-          description:
-            k === "forecast"
-              ? "Bias, key levels, invalidation, risk notes."
-              : k === "calendar"
-                ? "Impact filters + preparation notes."
-                : k === "bootcamp"
-                  ? "Cohort-based training for consistency."
-                  : k === "risk"
-                    ? "Rules to protect downside first."
-                    : "Templates + education library.",
-          icon: <Icon className="h-4 w-4" />,
-          imageSrc: cover.src,
-          imageAlt: cover.alt,
-        };
-      }),
-    [],
-  );
+      const label = d.title;
+      if (!metrics.find((m) => m.key === k)) {
+        metrics.push({ key: k, label, clicks: 0 });
+      }
+
+      window.localStorage.setItem("epic-trader-content-metrics", JSON.stringify(metrics));
+
+      return {
+        k,
+        title: d.title,
+        description:
+          k === "forecast"
+            ? "Bias, key levels, invalidation, risk notes."
+            : k === "calendar"
+              ? "Impact filters + preparation notes."
+              : k === "bootcamp"
+                ? "Cohort-based training for consistency."
+                : k === "risk"
+                  ? "Rules to protect downside first."
+                  : "Templates + education library.",
+        icon: <Icon className="h-4 w-4" />,
+        imageSrc: cover.src,
+        imageAlt: cover.alt,
+      };
+    });
+  }, []);
 
   return (
     <div>
@@ -98,6 +117,21 @@ const Index = () => {
               <FeatureCardGrid
                 items={gridItems}
                 onSelect={(k) => {
+                  const storedMetrics = window.localStorage.getItem("epic-trader-content-metrics");
+                  const metrics = storedMetrics
+                    ? (JSON.parse(storedMetrics) as Array<{ key: FeatureKey; label: string; clicks: number }>)
+                    : [];
+                  const nextMetrics = metrics.map((m) => (m.key === k ? { ...m, clicks: m.clicks + 1 } : m));
+                  window.localStorage.setItem("epic-trader-content-metrics", JSON.stringify(nextMetrics));
+
+                  if (!isSignedIn) {
+                    navigate("/sign-up");
+                    return;
+                  }
+                  if (k === "forecast") {
+                    navigate("/forecast");
+                    return;
+                  }
                   setActive(k);
                   setOpen(true);
                 }}
