@@ -6,10 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { PageHero } from "@/components/site/PageHero";
 import heroImage from "@/assets/module-forecast-daily.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+import { ADMIN_EMAIL } from "@/hooks/useAdmin";
 
-const ADMIN_EMAIL = "waleedkhalid2713@gmail.com";
-const ADMIN_PASSWORD = "Maarif:1214";
-const ADMIN_KEY = "epic-trader-admin";
+const formSchema = z.object({
+  email: z.string().trim().email().max(255),
+  password: z.string().min(8).max(200),
+});
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -17,15 +21,35 @@ const AdminLogin = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      window.localStorage.setItem(ADMIN_KEY, "true");
-      setError("");
-      navigate("/admin-dashboard");
+
+    setError("");
+    const parsed = formSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError("Please enter a valid email and password.");
       return;
     }
-    setError("Invalid credentials. Please try again.");
+
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+
+    if (signInError) {
+      setError(signInError.message);
+      return;
+    }
+
+    const signedInEmail = data.user?.email ?? "";
+    if (signedInEmail.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+      // Hard deny: only one authorized admin email.
+      await supabase.auth.signOut();
+      setError("Access denied for this account.");
+      return;
+    }
+
+    navigate("/admin-dashboard");
   };
 
   return (

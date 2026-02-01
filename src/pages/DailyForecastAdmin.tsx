@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHero } from "@/components/site/PageHero";
 import { Reveal } from "@/components/site/Reveal";
 import heroImage from "@/assets/module-forecast-daily.jpg";
+import { z } from "zod";
 
 type Market = {
   id: string;
@@ -36,7 +36,17 @@ type ForecastStore = {
 };
 
 const STORAGE_KEY = "epic-trader-forecast-store";
-const ADMIN_KEY = "epic-trader-admin";
+
+const MAX_FORECAST_TEXT = 5000;
+const forecastSchema = z.object({
+  structure: z.string().trim().max(MAX_FORECAST_TEXT),
+  poi: z.string().trim().max(MAX_FORECAST_TEXT),
+  notes: z.string().trim().max(MAX_FORECAST_TEXT),
+  result: z.string().trim().max(MAX_FORECAST_TEXT).optional(),
+  date: z.string().trim().max(32),
+  session: z.string().trim().max(32),
+  time: z.string().trim().max(16),
+});
 
 const DailyForecastAdmin = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -56,7 +66,7 @@ const DailyForecastAdmin = () => {
   const [savedAt, setSavedAt] = useState("");
   const [editingForecastId, setEditingForecastId] = useState<string | null>(null);
   const [store, setStore] = useState<ForecastStore>({ markets: [], forecasts: [] });
-  const navigate = useNavigate();
+  const [formError, setFormError] = useState<string>("");
 
   const selectedMarket = useMemo(
     () => store.markets.find((m) => m.id === selectedMarketId) ?? null,
@@ -70,11 +80,6 @@ const DailyForecastAdmin = () => {
   }, [selectedMarket, selectedPair]);
 
   useEffect(() => {
-    const isAdmin = window.localStorage.getItem(ADMIN_KEY) === "true";
-    if (!isAdmin) {
-      navigate("/admin-login");
-      return;
-    }
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as ForecastStore;
@@ -191,7 +196,24 @@ const DailyForecastAdmin = () => {
   };
 
   const handleSaveForecast = async () => {
+    setFormError("");
     if (!selectedMarketId || !selectedPair) {
+      setFormError("Please select a market and pair.");
+      return;
+    }
+
+    const parsed = forecastSchema.safeParse({
+      structure,
+      poi,
+      notes,
+      result,
+      date,
+      session,
+      time,
+    });
+
+    if (!parsed.success) {
+      setFormError("Please review the forecast fields. One or more values are too long or invalid.");
       return;
     }
 
@@ -210,14 +232,14 @@ const DailyForecastAdmin = () => {
       id: editingForecastId ?? crypto.randomUUID(),
       marketId: selectedMarketId,
       pair: selectedPair,
-      date,
-      session,
-      time,
+      date: parsed.data.date,
+      session: parsed.data.session,
+      time: parsed.data.time,
       imageDataUrl,
-      structure,
-      poi,
-      notes,
-      result,
+      structure: parsed.data.structure,
+      poi: parsed.data.poi,
+      notes: parsed.data.notes,
+      result: parsed.data.result,
       savedAt: savedAt ? new Date(savedAt).toISOString() : new Date().toISOString(),
     };
 
@@ -502,6 +524,7 @@ const DailyForecastAdmin = () => {
                     id="structure-notes"
                     placeholder="Describe market structure, bias, and key levels."
                     rows={4}
+                    maxLength={MAX_FORECAST_TEXT}
                     value={structure}
                     onChange={(event) => setStructure(event.target.value)}
                   />
@@ -515,6 +538,7 @@ const DailyForecastAdmin = () => {
                     id="poi-notes"
                     placeholder="Highlight POIs, liquidity zones, and timing windows."
                     rows={4}
+                    maxLength={MAX_FORECAST_TEXT}
                     value={poi}
                     onChange={(event) => setPoi(event.target.value)}
                   />
@@ -528,6 +552,7 @@ const DailyForecastAdmin = () => {
                     id="extra-notes"
                     placeholder="Risk plan, invalidation rules, and session notes."
                     rows={4}
+                    maxLength={MAX_FORECAST_TEXT}
                     value={notes}
                     onChange={(event) => setNotes(event.target.value)}
                   />
@@ -540,10 +565,13 @@ const DailyForecastAdmin = () => {
                     id="forecast-result"
                     placeholder="Post the result for this forecast."
                     rows={3}
+                    maxLength={MAX_FORECAST_TEXT}
                     value={result}
                     onChange={(event) => setResult(event.target.value)}
                   />
                 </div>
+
+                {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
 
                 <Button type="button" className="rounded-full px-6" onClick={handleSaveForecast}>
                   {editingForecastId ? "Update forecast" : "Save forecast"}

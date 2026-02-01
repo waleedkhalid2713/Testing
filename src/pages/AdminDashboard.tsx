@@ -160,7 +160,6 @@ const AdminDashboard = () => {
                 <tr className="border-b text-left">
                   <th className="py-2">Name</th>
                   <th>Email</th>
-                  <th>Password</th>
                   <th>Country</th>
                   <th>Age</th>
                   <th>Profession</th>
@@ -172,7 +171,6 @@ const AdminDashboard = () => {
                     <tr key={user.email} className="border-b">
                       <td className="py-2">{user.name}</td>
                       <td>{user.email}</td>
-                      <td>{user.password}</td>
                       <td>{user.country || "-"}</td>
                       <td>{user.age || "-"}</td>
                       <td>{user.profession || "-"}</td>
@@ -180,7 +178,7 @@ const AdminDashboard = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-4 text-muted-foreground">
+                    <td colSpan={5} className="py-4 text-muted-foreground">
                       No users match the current filters.
                     </td>
                   </tr>

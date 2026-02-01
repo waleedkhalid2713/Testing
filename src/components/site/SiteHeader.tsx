@@ -2,6 +2,7 @@ import * as React from "react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import brandLogo from "@/assets/epic-trader-logo.png";
+import { supabase } from "@/integrations/supabase/client";
 
 const linkBase =
   "text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground md:text-base";
@@ -11,14 +12,28 @@ export function SiteHeader() {
   const [isSignedIn, setIsSignedIn] = React.useState(false);
 
   React.useEffect(() => {
-    const isAdmin = window.localStorage.getItem("epic-trader-admin") === "true";
-    const isUser = window.localStorage.getItem("epic-trader-user") === "true";
-    setIsSignedIn(isAdmin || isUser);
+    // Keep legacy localStorage flags for now (non-admin user flow), but prefer backend auth when available.
+    const sync = (hasSession: boolean) => {
+      const isAdminFlag = window.localStorage.getItem("epic-trader-admin") === "true";
+      const isUserFlag = window.localStorage.getItem("epic-trader-user") === "true";
+      setIsSignedIn(hasSession || isAdminFlag || isUserFlag);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      sync(Boolean(session));
+    });
+
+    supabase.auth.getSession().then(({ data }) => {
+      sync(Boolean(data.session));
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSignOut = () => {
     window.localStorage.removeItem("epic-trader-admin");
     window.localStorage.removeItem("epic-trader-user");
+    supabase.auth.signOut();
     setIsSignedIn(false);
   };
 

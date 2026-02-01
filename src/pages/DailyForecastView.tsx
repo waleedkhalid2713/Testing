@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { PageHero } from "@/components/site/PageHero";
 import heroImage from "@/assets/module-forecast-daily.jpg";
+import { useAdmin } from "@/hooks/useAdmin";
 
 type Market = {
   id: string;
@@ -33,7 +34,6 @@ type ForecastStore = {
 };
 
 const STORAGE_KEY = "epic-trader-forecast-store";
-const ADMIN_KEY = "epic-trader-admin";
 
 const DailyForecastView = () => {
   const [store, setStore] = useState<ForecastStore>({ markets: [], forecasts: [] });
@@ -45,7 +45,7 @@ const DailyForecastView = () => {
   const [marketName, setMarketName] = useState("");
   const [pairName, setPairName] = useState("");
   const [pairMarketId, setPairMarketId] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin } = useAdmin();
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -56,8 +56,6 @@ const DailyForecastView = () => {
       setPair(parsed.markets[0]?.pairs[0] ?? "");
       setPairMarketId(parsed.markets[0]?.id ?? "");
     }
-    const adminFlag = window.localStorage.getItem(ADMIN_KEY) === "true";
-    setIsAdmin(adminFlag);
   }, []);
 
   const persistStore = (next: ForecastStore) => {
