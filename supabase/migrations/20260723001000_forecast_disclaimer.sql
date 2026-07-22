@@ -30,6 +30,23 @@ $$;
 
 grant execute on function public.accept_forecast_disclaimer() to authenticated;
 
+create or replace function public.has_accepted_forecast_disclaimer()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists (
+    select 1
+    from public.profiles
+    where profiles.id = auth.uid()
+      and profiles.forecast_disclaimer_accepted_at is not null
+  );
+$;
+
+grant execute on function public.has_accepted_forecast_disclaimer() to authenticated;
+
 -- Forecast records are available only after a signed-in user accepts the disclaimer.
 drop policy if exists "Anyone can view published forecasts" on public.trading_forecasts;
 
