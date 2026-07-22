@@ -62,6 +62,9 @@ export function SiteHeader() {
           <NavLink to="/bootcamp" className={linkBase} activeClassName={linkActive}>
             Bootcamp
           </NavLink>
+          <NavLink to="/forecast" className={linkBase} activeClassName={linkActive}>
+            Forecasts
+          </NavLink>
           <NavLink to="/about" className={linkBase} activeClassName={linkActive}>
             About
           </NavLink>
