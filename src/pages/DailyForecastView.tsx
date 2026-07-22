@@ -203,7 +203,8 @@ const DailyForecastView = () => {
       />
 
       {forecastAccess === "granted" ? (
-        <div className="container py-12">
+        <>
+          <div className="container py-12">
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Forecast dashboard</CardTitle>
@@ -345,7 +346,7 @@ const DailyForecastView = () => {
           {selectedScreenshot ? <img src={selectedImageType === "result" ? selectedScreenshot.resultImageUrl ?? selectedScreenshot.imageUrl : selectedScreenshot.imageUrl} alt={`${selectedScreenshot.instrument?.symbol ?? "Trade"} ${selectedImageType === "result" ? "result screenshot" : "TradingView setup"}`} className="max-h-[70vh] w-full rounded-lg object-contain" /> : null}
         </DialogContent>
       </Dialog>
-        </div>
+        </>
       ) : (
         <div className="container py-12">
           <Card className="mx-auto max-w-2xl">
