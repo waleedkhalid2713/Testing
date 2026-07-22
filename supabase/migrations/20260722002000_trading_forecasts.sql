@@ -1,3 +1,15 @@
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select lower(coalesce(auth.jwt() ->> 'email', '')) = 'epictrader.support@gmail.com';
+$$;
+
+grant execute on function public.is_admin() to authenticated;
+
 create table if not exists public.trading_instruments (
   id uuid primary key default gen_random_uuid(),
   market text not null check (char_length(market) <= 80),
