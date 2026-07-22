@@ -71,7 +71,7 @@ Deno.serve(async (request) => {
     '  "confidence": "high | medium | low"',
     "}",
     "Use win or loss only if the screenshot explicitly proves the completed outcome. Otherwise use active.",
-  ].join("\\n");
+  ].join("\n");
 
   const imageBase64 = image.slice("data:image/jpeg;base64,".length);
   const model = Deno.env.get("GEMINI_VISION_MODEL") ?? "gemini-2.5-flash-lite";
