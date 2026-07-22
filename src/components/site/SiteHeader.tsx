@@ -3,6 +3,7 @@ import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import brandLogo from "@/assets/epic-trader-logo.png";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdmin } from "@/hooks/useAdmin";
 
 const linkBase =
   "text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground md:text-base";
@@ -10,6 +11,7 @@ const linkActive = "text-foreground md:text-foreground";
 
 export function SiteHeader() {
   const [isSignedIn, setIsSignedIn] = React.useState(false);
+  const { isAdmin } = useAdmin();
 
   React.useEffect(() => {
     // Keep legacy localStorage flags for now (non-admin user flow), but prefer backend auth when available.
@@ -77,9 +79,16 @@ export function SiteHeader() {
         {/* Right: CTA */}
         <div className="ml-auto flex items-center justify-end gap-2">
           {isSignedIn ? (
-            <Button size="sm" variant="outline" className="rounded-full px-5" onClick={handleSignOut}>
-              Sign Out
-            </Button>
+            <>
+              {isAdmin ? (
+                <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
+                  <a href="/admin-dashboard">Admin Dashboard</a>
+                </Button>
+              ) : null}
+              <Button size="sm" variant="outline" className="rounded-full px-5" onClick={handleSignOut}>
+                Sign Out
+              </Button>
+            </>
           ) : (
             <>
               <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
