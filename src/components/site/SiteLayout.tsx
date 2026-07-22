@@ -1,13 +1,15 @@
 import * as React from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 
 import { IntroModal } from "@/components/site/IntroModal";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { MarqueeTicker } from "@/components/site/MarqueeTicker";
+import { supabase } from "@/integrations/supabase/client";
 
 const INTRO_DISMISSED_KEY = "epic-trader-intro-dismissed";
 
 export function SiteLayout() {
+  const location = useLocation();
   const [showIntro, setShowIntro] = React.useState(
     () => window.sessionStorage.getItem(INTRO_DISMISSED_KEY) !== "true",
   );
@@ -18,22 +20,29 @@ export function SiteLayout() {
   };
 
   React.useEffect(() => {
-    const visitsKey = "epic-trader-visits";
-    const storedVisits = window.localStorage.getItem(visitsKey);
-    const visits = storedVisits ? (JSON.parse(storedVisits) as Array<Record<string, string>>) : [];
-    const userData = window.localStorage.getItem("epic-trader-users");
-    const users = userData ? (JSON.parse(userData) as Array<Record<string, string>>) : [];
-    const currentUser = users[0];
-    const entry = {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      country: currentUser?.country ?? "Unknown",
-      age: currentUser?.age ?? "Unknown",
-      profession: currentUser?.profession ?? "Unknown",
-      page: window.location.pathname,
+    const recordPageView = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        return;
+      }
+
+      const region =
+        typeof session.user.user_metadata.country === "string"
+          ? session.user.user_metadata.country
+          : "Unknown";
+
+      await supabase.from("user_activity_events").insert({
+        user_id: session.user.id,
+        page: location.pathname,
+        region,
+      });
     };
-    window.localStorage.setItem(visitsKey, JSON.stringify([entry, ...visits]));
-  }, []);
+
+    void recordPageView();
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
