@@ -3,8 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
 
-// Single authorized admin email (see project security requirement).
-export const ADMIN_EMAIL = "waleedkhalid2713@gmail.com";
+export const ADMIN_EMAIL = "epictrader.support@gmail.com";
 
 type UseAdminResult = {
   loading: boolean;
