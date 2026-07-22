@@ -72,19 +72,15 @@ const DailyForecastView = () => {
         return;
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("forecast_disclaimer_accepted_at")
-        .eq("id", user.id)
-        .maybeSingle();
+      const { data: hasAccepted, error: accessError } = await supabase.rpc("has_accepted_forecast_disclaimer");
 
-      if (profileError) {
+      if (accessError) {
         setError("Unable to load your disclaimer status. Please try again.");
         setForecastAccess("needs-acceptance");
         return;
       }
 
-      if (!profile?.forecast_disclaimer_accepted_at) {
+      if (!hasAccepted) {
         setForecastAccess("needs-acceptance");
         return;
       }
