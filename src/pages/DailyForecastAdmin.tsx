@@ -68,10 +68,67 @@ const DailyForecastAdmin = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [editorMarketType, setEditorMarketType] = useState("");
+  const [editorSubMarket, setEditorSubMarket] = useState("");
+  const [listMarketType, setListMarketType] = useState("");
+  const [listSubMarket, setListSubMarket] = useState("");
+  const [listInstrumentId, setListInstrumentId] = useState("");
+  const [listStatus, setListStatus] = useState("");
 
   const selectedInstrument = useMemo(
     () => instruments.find((instrument) => instrument.id === form.instrumentId) ?? null,
     [form.instrumentId, instruments],
+  );
+
+  const marketTypes = useMemo(
+    () => [...new Set(instruments.map((instrument) => instrument.market_type))],
+    [instruments],
+  );
+
+  const editorSubMarkets = useMemo(
+    () => [...new Set(
+      instruments
+        .filter((instrument) => !editorMarketType || instrument.market_type === editorMarketType)
+        .map((instrument) => instrument.sub_market),
+    )],
+    [editorMarketType, instruments],
+  );
+
+  const editorInstruments = useMemo(
+    () => instruments.filter((instrument) =>
+      (!editorMarketType || instrument.market_type === editorMarketType) &&
+      (!editorSubMarket || instrument.sub_market === editorSubMarket),
+    ),
+    [editorMarketType, editorSubMarket, instruments],
+  );
+
+  const listSubMarkets = useMemo(
+    () => [...new Set(
+      instruments
+        .filter((instrument) => !listMarketType || instrument.market_type === listMarketType)
+        .map((instrument) => instrument.sub_market),
+    )],
+    [instruments, listMarketType],
+  );
+
+  const listInstruments = useMemo(
+    () => instruments.filter((instrument) =>
+      (!listMarketType || instrument.market_type === listMarketType) &&
+      (!listSubMarket || instrument.sub_market === listSubMarket),
+    ),
+    [instruments, listMarketType, listSubMarket],
+  );
+
+  const filteredForecasts = useMemo(
+    () => forecasts.filter((forecast) => {
+      const instrument = instruments.find((item) => item.id === forecast.instrument_id);
+      if (listMarketType && instrument?.market_type !== listMarketType) return false;
+      if (listSubMarket && instrument?.sub_market !== listSubMarket) return false;
+      if (listInstrumentId && forecast.instrument_id !== listInstrumentId) return false;
+      if (listStatus && forecast.status !== listStatus) return false;
+      return true;
+    }),
+    [forecasts, instruments, listInstrumentId, listMarketType, listStatus, listSubMarket],
   );
 
   const loadData = async () => {
@@ -151,6 +208,11 @@ const DailyForecastAdmin = () => {
           normaliseSymbol(instrument.symbol) === normaliseSymbol(nextExtraction.symbol),
       );
 
+      if (matchedInstrument) {
+        setEditorMarketType(matchedInstrument.market_type);
+        setEditorSubMarket(matchedInstrument.sub_market);
+      }
+
       setForm((current) => ({
         ...current,
         instrumentId: matchedInstrument?.id ?? current.instrumentId,
@@ -177,6 +239,8 @@ const DailyForecastAdmin = () => {
 
   const resetForm = () => {
     setForm(emptyForm());
+    setEditorMarketType("");
+    setEditorSubMarket("");
     setImageFile(null);
     setPreviewUrl(null);
     setExtraction(null);
@@ -184,6 +248,9 @@ const DailyForecastAdmin = () => {
   };
 
   const handleEdit = (forecast: Forecast) => {
+    const instrument = instruments.find((item) => item.id === forecast.instrument_id);
+    setEditorMarketType(instrument?.market_type ?? "");
+    setEditorSubMarket(instrument?.sub_market ?? "");
     setEditingForecast(forecast);
     setForm({
       instrumentId: forecast.instrument_id,
@@ -336,7 +403,7 @@ const DailyForecastAdmin = () => {
               <CardHeader>
                 <CardTitle>{editingForecast ? "Edit published forecast" : "Publish a trade forecast"}</CardTitle>
                 <CardDescription>
-                  Covered markets: Forex, Indices, Commodities, and Crypto. Images are compressed to 450 KB or less before upload.
+                  Choose market type, sub-market, and instrument before publishing. Images are compressed to 450 KB or less before upload.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -358,11 +425,25 @@ const DailyForecastAdmin = () => {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="market-type">Market type</label>
+                      <select id="market-type" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={editorMarketType} onChange={(event) => { setEditorMarketType(event.target.value); setEditorSubMarket(""); setField("instrumentId", ""); }}>
+                        <option value="">Choose type</option>
+                        {marketTypes.map((item) => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="sub-market">Sub-market</label>
+                      <select id="sub-market" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={editorSubMarket} onChange={(event) => { setEditorSubMarket(event.target.value); setField("instrumentId", ""); }}>
+                        <option value="">Choose sub-market</option>
+                        {editorSubMarkets.map((item) => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
                       <label className="text-sm font-medium" htmlFor="instrument">Instrument</label>
                       <select id="instrument" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.instrumentId} onChange={(event) => setField("instrumentId", event.target.value)}>
                         <option value="">Choose instrument</option>
-                        {instruments.map((instrument) => (
-                          <option key={instrument.id} value={instrument.id}>{instrument.market} — {instrument.symbol}</option>
+                        {editorInstruments.map((instrument) => (
+                          <option key={instrument.id} value={instrument.id}>{instrument.symbol} — {instrument.name}</option>
                         ))}
                       </select>
                     </div>
@@ -408,7 +489,7 @@ const DailyForecastAdmin = () => {
                     <Textarea id="notes" rows={4} maxLength={2000} value={form.notes} onChange={(event) => setField("notes", event.target.value)} placeholder="Optional context visible in the setup." />
                   </div>
 
-                  {selectedInstrument ? <p className="text-sm text-muted-foreground">Publishing for {selectedInstrument.market} — {selectedInstrument.symbol}.</p> : null}
+                  {selectedInstrument ? <p className="text-sm text-muted-foreground">Publishing for {selectedInstrument.market_type} · {selectedInstrument.sub_market} · {selectedInstrument.symbol} — {selectedInstrument.name}.</p> : null}
                   {extraction ? <p className="text-sm text-muted-foreground">AI confidence: {extraction.confidence}. Always check every field against the image.</p> : null}
                   {error ? <p className="text-sm text-destructive">{error}</p> : null}
                   {message ? <p className="text-sm text-emerald-600">{message}</p> : null}
@@ -441,14 +522,49 @@ const DailyForecastAdmin = () => {
               <CardTitle>Published forecasts</CardTitle>
               <CardDescription>These records are shared with every visitor and no longer depend on your browser.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {forecasts.length ? forecasts.map((forecast) => {
+            <CardContent className="grid gap-4 border-b pb-6 md:grid-cols-2 xl:grid-cols-5">
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="admin-filter-market-type">Market type</label>
+                <select id="admin-filter-market-type" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={listMarketType} onChange={(event) => { setListMarketType(event.target.value); setListSubMarket(""); setListInstrumentId(""); }}>
+                  <option value="">All types</option>
+                  {marketTypes.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="admin-filter-sub-market">Sub-market</label>
+                <select id="admin-filter-sub-market" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={listSubMarket} onChange={(event) => { setListSubMarket(event.target.value); setListInstrumentId(""); }}>
+                  <option value="">All sub-markets</option>
+                  {listSubMarkets.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="admin-filter-instrument">Instrument</label>
+                <select id="admin-filter-instrument" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={listInstrumentId} onChange={(event) => setListInstrumentId(event.target.value)}>
+                  <option value="">All instruments</option>
+                  {listInstruments.map((instrument) => <option key={instrument.id} value={instrument.id}>{instrument.symbol} — {instrument.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="admin-filter-status">Result</label>
+                <select id="admin-filter-status" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={listStatus} onChange={(event) => setListStatus(event.target.value)}>
+                  <option value="">All results</option>
+                  <option value="active">Active</option>
+                  <option value="win">Win</option>
+                  <option value="loss">Loss</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <Button type="button" variant="outline" className="w-full" onClick={() => { setListMarketType(""); setListSubMarket(""); setListInstrumentId(""); setListStatus(""); }}>Clear filters</Button>
+              </div>
+            </CardContent>
+            <CardContent className="space-y-3 pt-6">
+              {filteredForecasts.length ? filteredForecasts.map((forecast) => {
                 const instrument = instruments.find((item) => item.id === forecast.instrument_id);
                 return <div key={forecast.id} className="flex flex-col justify-between gap-3 rounded-lg border p-4 sm:flex-row sm:items-center">
-                  <div><p className="font-semibold">{instrument?.market ?? "Unknown"} — {instrument?.symbol ?? "Unknown"}</p><p className="text-sm text-muted-foreground">{forecast.direction.toUpperCase()} · {forecast.status.toUpperCase()} · {forecast.trade_date}</p></div>
+                  <div><p className="font-semibold">{instrument ? \`${instrument.market_type} · ${instrument.sub_market} · ${instrument.symbol} — ${instrument.name}\` : "Unknown instrument"}</p><p className="text-sm text-muted-foreground">{forecast.direction.toUpperCase()} · {forecast.status.toUpperCase()} · {forecast.trade_date}</p></div>
                   <div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => handleEdit(forecast)}>Edit</Button><Button size="sm" variant="destructive" onClick={() => void handleDelete(forecast)}>Delete</Button></div>
                 </div>;
-              }) : <p className="text-sm text-muted-foreground">No forecasts have been published yet.</p>}
+              }) : <p className="text-sm text-muted-foreground">{forecasts.length ? "No forecasts match these filters." : "No forecasts have been published yet."}</p>}
             </CardContent>
           </Card>
         </Reveal>
