@@ -391,3 +391,6 @@ const DailyForecastView = () => {
       )}
     </div>
   );
+};
+
+export default DailyForecastView;
