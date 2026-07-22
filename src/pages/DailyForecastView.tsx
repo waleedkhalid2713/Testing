@@ -28,6 +28,8 @@ const DailyForecastView = () => {
   const [market, setMarket] = useState("");
   const [instrumentId, setInstrumentId] = useState("");
   const [status, setStatus] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [error, setError] = useState("");
   const { isAdmin } = useAdmin();
 
@@ -36,7 +38,7 @@ const DailyForecastView = () => {
       const [{ data: instrumentRows, error: instrumentError }, { data: forecastRows, error: forecastError }] =
         await Promise.all([
           supabase.from("trading_instruments").select("*").eq("is_active", true).order("display_order"),
-          supabase.from("trading_forecasts").select("*").order("published_at", { ascending: false }),
+          supabase.from("trading_forecasts").select("*").order("trade_date", { ascending: false }),
         ]);
 
       if (instrumentError || forecastError) {
@@ -77,16 +79,52 @@ const DailyForecastView = () => {
         if (market && forecast.instrument?.market !== market) return false;
         if (instrumentId && forecast.instrument_id !== instrumentId) return false;
         if (status && forecast.status !== status) return false;
+        if (startDate && forecast.trade_date < startDate) return false;
+        if (endDate && forecast.trade_date > endDate) return false;
         return true;
       }),
-    [enrichedForecasts, instrumentId, market, status],
+    [enrichedForecasts, endDate, instrumentId, market, startDate, status],
   );
+
+  const analysis = useMemo(() => {
+    const active = filtered.filter((forecast) => forecast.status === "active").length;
+    const wins = filtered.filter((forecast) => forecast.status === "win").length;
+    const completed = filtered.filter((forecast) => forecast.status === "win" || forecast.status === "loss").length;
+    const winRate = completed ? Math.round((wins / completed) * 100) : null;
+
+    const byInstrument = new Map<string, { label: string; total: number; wins: number; completed: number }>();
+    filtered.forEach((forecast) => {
+      const label = forecast.instrument?.symbol ?? "Unknown";
+      const current = byInstrument.get(forecast.instrument_id) ?? { label, total: 0, wins: 0, completed: 0 };
+      current.total += 1;
+      if (forecast.status === "win") current.wins += 1;
+      if (forecast.status === "win" || forecast.status === "loss") current.completed += 1;
+      byInstrument.set(forecast.instrument_id, current);
+    });
+
+    const instrumentsSummary = [...byInstrument.values()]
+      .map((item) => ({
+        ...item,
+        winRate: item.completed ? Math.round((item.wins / item.completed) * 100) : null,
+      }))
+      .sort((first, second) => second.total - first.total);
+
+    return { active, completed, instrumentsSummary, winRate, wins };
+  }, [filtered]);
+
+  const resetFilters = () => {
+    setMarket("");
+    setInstrumentId("");
+    setStatus("");
+    setStartDate("");
+    setEndDate("");
+  };
 
   return (
     <div>
       <PageHero
         title="Daily Trade Forecasts"
-        subtitle="View confirmed execution, stop-loss, take-profit, and result information from the Epic Trader team."
+        subtitle="Explore the Epic Trader team's published setups, outcomes, and market analysis."
         imageSrc={heroImage}
         imageAlt="Forecast dashboard with candlestick charts"
       />
@@ -94,12 +132,12 @@ const DailyForecastView = () => {
       <div className="container py-12">
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Markets we cover</CardTitle>
+            <CardTitle>Forecast dashboard</CardTitle>
             <CardDescription>
-              {supportedMarkets.length ? supportedMarkets.join(", ") : "Loading supported markets…"}
+              Filter public forecasts by market, instrument, outcome, or a trade-date range.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
+          <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="filter-market">Market</label>
               <select id="filter-market" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={market} onChange={(event) => { setMarket(event.target.value); setInstrumentId(""); }}>
@@ -115,17 +153,46 @@ const DailyForecastView = () => {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="filter-result">Result</label>
-              <select id="filter-result" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
-                <option value="">All results</option>
-                <option value="active">Active</option>
-                <option value="win">Win</option>
-                <option value="loss">Loss</option>
-              </select>
+              <label className="text-sm font-medium" htmlFor="filter-start-date">From date</label>
+              <input id="filter-start-date" type="date" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={startDate} max={endDate || undefined} onChange={(event) => setStartDate(event.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="filter-end-date">To date</label>
+              <input id="filter-end-date" type="date" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={endDate} min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} />
+            </div>
+            <div className="flex items-end">
+              <Button type="button" variant="outline" className="w-full" onClick={resetFilters}>Clear filters</Button>
             </div>
           </CardContent>
           {isAdmin ? <CardContent className="border-t pt-6"><Button asChild className="rounded-full"><Link to="/daily-forecast">Publish or edit forecasts</Link></Button></CardContent> : null}
         </Card>
+
+        <section className="mb-8" aria-labelledby="forecast-analysis">
+          <div className="mb-4">
+            <h2 id="forecast-analysis" className="text-2xl font-semibold">Forecast analysis</h2>
+            <p className="text-sm text-muted-foreground">Results are based only on the forecasts shown by your selected filters.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Published forecasts</p><p className="mt-2 text-3xl font-semibold">{filtered.length}</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Active forecasts</p><p className="mt-2 text-3xl font-semibold">{analysis.active}</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Completed forecasts</p><p className="mt-2 text-3xl font-semibold">{analysis.completed}</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Win rate</p><p className="mt-2 text-3xl font-semibold">{analysis.winRate === null ? "—" : `${analysis.winRate}%`}</p><p className="mt-1 text-xs text-muted-foreground">{analysis.wins} confirmed wins</p></CardContent></Card>
+          </div>
+          {analysis.instrumentsSummary.length > 1 ? (
+            <Card className="mt-4">
+              <CardHeader><CardTitle className="text-base">Instrument performance</CardTitle><CardDescription>Completed-result win rate by instrument.</CardDescription></CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {analysis.instrumentsSummary.map((item) => (
+                  <div key={item.label} className="rounded-lg border p-3">
+                    <p className="font-semibold">{item.label}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.total} forecast{item.total === 1 ? "" : "s"}</p>
+                    <p className="mt-2 text-sm">Win rate: <span className="font-semibold">{item.winRate === null ? "—" : `${item.winRate}%`}</span></p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+        </section>
 
         {error ? <p className="mb-6 text-sm text-destructive">{error}</p> : null}
 
