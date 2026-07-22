@@ -36,14 +36,14 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select exists (
     select 1
     from public.profiles
     where profiles.id = auth.uid()
       and profiles.forecast_disclaimer_accepted_at is not null
   );
-$;
+$$;
 
 grant execute on function public.has_accepted_forecast_disclaimer() to authenticated;
 
