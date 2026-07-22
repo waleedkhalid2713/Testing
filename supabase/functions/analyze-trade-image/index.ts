@@ -74,7 +74,7 @@ Deno.serve(async (request) => {
   ].join("\n");
 
   const imageBase64 = image.slice("data:image/jpeg;base64,".length);
-  const model = Deno.env.get("GEMINI_VISION_MODEL") ?? "gemini-2.5-flash-lite";
+  const model = Deno.env.get("GEMINI_VISION_MODEL") ?? "gemini-2.5-flash";
   const geminiResponse = await fetch(
     "https://generativelanguage.googleapis.com/v1beta/models/" +
       encodeURIComponent(model) +
