@@ -561,7 +561,7 @@ const DailyForecastAdmin = () => {
               {filteredForecasts.length ? filteredForecasts.map((forecast) => {
                 const instrument = instruments.find((item) => item.id === forecast.instrument_id);
                 return <div key={forecast.id} className="flex flex-col justify-between gap-3 rounded-lg border p-4 sm:flex-row sm:items-center">
-                  <div><p className="font-semibold">{instrument ? \`${instrument.market_type} · ${instrument.sub_market} · ${instrument.symbol} — ${instrument.name}\` : "Unknown instrument"}</p><p className="text-sm text-muted-foreground">{forecast.direction.toUpperCase()} · {forecast.status.toUpperCase()} · {forecast.trade_date}</p></div>
+                  <div><p className="font-semibold">{instrument ? `${instrument.market_type} · ${instrument.sub_market} · ${instrument.symbol} — ${instrument.name}` : "Unknown instrument"}</p><p className="text-sm text-muted-foreground">{forecast.direction.toUpperCase()} · {forecast.status.toUpperCase()} · {forecast.trade_date}</p></div>
                   <div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => handleEdit(forecast)}>Edit</Button><Button size="sm" variant="destructive" onClick={() => void handleDelete(forecast)}>Delete</Button></div>
                 </div>;
               }) : <p className="text-sm text-muted-foreground">{forecasts.length ? "No forecasts match these filters." : "No forecasts have been published yet."}</p>}
