@@ -28,6 +28,12 @@ type Extraction = {
   confidence: "high" | "medium" | "low";
 };
 
+type ResultReview = {
+  suggestion: "win" | "loss" | "active" | "unclear";
+  notes: string;
+  confidence: "high" | "medium" | "low";
+};
+
 type FormState = {
   instrumentId: string;
   direction: "long" | "short";
@@ -62,9 +68,13 @@ const DailyForecastAdmin = () => {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [resultImageFile, setResultImageFile] = useState<File | null>(null);
+  const [resultPreviewUrl, setResultPreviewUrl] = useState<string | null>(null);
+  const [resultReview, setResultReview] = useState<ResultReview | null>(null);
   const [editingForecast, setEditingForecast] = useState<Forecast | null>(null);
   const [extraction, setExtraction] = useState<Extraction | null>(null);
   const [isReadingImage, setIsReadingImage] = useState(false);
+  const [isReadingResult, setIsReadingResult] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -175,11 +185,79 @@ const DailyForecastAdmin = () => {
     }
   };
 
+  const handleResultImageChange = async (file: File | undefined) => {
+    setError("");
+    setMessage("");
+    setResultReview(null);
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const compressed = await compressForecastImage(file);
+      setResultImageFile(compressed);
+      setResultPreviewUrl(URL.createObjectURL(compressed));
+      setMessage(`Result image prepared: ${Math.ceil(compressed.size / 1024)} KB.`);
+    } catch (imageError) {
+      setResultImageFile(null);
+      setResultPreviewUrl(null);
+      setError(imageError instanceof Error ? imageError.message : "Unable to prepare this result image.");
+    }
+  };
+
+  const handleReadResult = async () => {
+    if (!editingForecast || !resultImageFile) {
+      setError("Open a published forecast and upload its result screenshot first.");
+      return;
+    }
+
+    setIsReadingResult(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const image = await fileToDataUrl(resultImageFile);
+      const { data, error: functionError } = await supabase.functions.invoke("analyze-trade-image", {
+        body: {
+          image,
+          mode: "result",
+          trade: {
+            direction: form.direction,
+            executionPrice: Number(form.executionPrice),
+            stopLoss: Number(form.stopLoss),
+            takeProfit1: Number(form.takeProfit1),
+            takeProfit2: form.takeProfit2 ? Number(form.takeProfit2) : null,
+          },
+        },
+      });
+
+      if (functionError || data?.error) {
+        throw new Error(data?.error ?? functionError?.message ?? "AI could not review this result image.");
+      }
+
+      const nextReview = data?.result as ResultReview | undefined;
+      if (!nextReview) {
+        throw new Error("AI did not return a result suggestion.");
+      }
+
+      setResultReview(nextReview);
+      setMessage("AI suggested a result. Review the evidence, then apply and save it.");
+    } catch (analysisError) {
+      setError(analysisError instanceof Error ? analysisError.message : "AI could not review this result image.");
+    } finally {
+      setIsReadingResult(false);
+    }
+  };
+
   const resetForm = () => {
     setForm(emptyForm());
     setImageFile(null);
     setPreviewUrl(null);
+    setResultImageFile(null);
+    setResultPreviewUrl(null);
     setExtraction(null);
+    setResultReview(null);
     setEditingForecast(null);
   };
 
@@ -198,7 +276,14 @@ const DailyForecastAdmin = () => {
     });
     setPreviewUrl(supabase.storage.from("forecast-images").getPublicUrl(forecast.image_path).data.publicUrl);
     setImageFile(null);
+    setResultImageFile(null);
+    setResultPreviewUrl(
+      forecast.result_image_path
+        ? supabase.storage.from("forecast-images").getPublicUrl(forecast.result_image_path).data.publicUrl
+        : null,
+    );
     setExtraction((forecast.ai_extraction as Extraction | null) ?? null);
+    setResultReview((forecast.result_ai_extraction as ResultReview | null) ?? null);
     setError("");
     setMessage("You are editing a published forecast. Upload a new image only if you want to replace it.");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -216,7 +301,8 @@ const DailyForecastAdmin = () => {
       return;
     }
 
-    const { error: storageError } = await supabase.storage.from("forecast-images").remove([forecast.image_path]);
+    const paths = [forecast.image_path, forecast.result_image_path].filter((path): path is string => Boolean(path));
+    const { error: storageError } = await supabase.storage.from("forecast-images").remove(paths);
     if (storageError) {
       setError("Forecast was deleted, but its image could not be removed: " + storageError.message);
     }
@@ -258,6 +344,8 @@ const DailyForecastAdmin = () => {
 
     let imagePath = editingForecast?.image_path ?? "";
     let replacementPath: string | null = null;
+    let resultImagePath = editingForecast?.result_image_path ?? null;
+    let resultReplacementPath: string | null = null;
 
     try {
       if (imageFile) {
@@ -280,6 +368,26 @@ const DailyForecastAdmin = () => {
         imagePath = replacementPath;
       }
 
+      if (resultImageFile) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error("Your admin session has ended. Please sign in again.");
+        }
+
+        resultReplacementPath = `${user.id}/${crypto.randomUUID()}-result.jpg`;
+        const { error: resultUploadError } = await supabase.storage.from("forecast-images").upload(resultReplacementPath, resultImageFile, {
+          cacheControl: "31536000",
+          contentType: "image/jpeg",
+          upsert: false,
+        });
+
+        if (resultUploadError) {
+          throw resultUploadError;
+        }
+
+        resultImagePath = resultReplacementPath;
+      }
+
       const payload = {
         instrument_id: form.instrumentId,
         direction: form.direction,
@@ -292,6 +400,9 @@ const DailyForecastAdmin = () => {
         notes: form.notes.trim(),
         image_path: imagePath,
         ai_extraction: extraction,
+        result_image_path: resultImagePath,
+        result_ai_extraction: resultReview,
+        result_confirmed_at: form.status === "active" ? null : editingForecast?.result_confirmed_at ?? new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
@@ -306,6 +417,9 @@ const DailyForecastAdmin = () => {
       if (replacementPath && editingForecast?.image_path) {
         await supabase.storage.from("forecast-images").remove([editingForecast.image_path]);
       }
+      if (resultReplacementPath && editingForecast?.result_image_path) {
+        await supabase.storage.from("forecast-images").remove([editingForecast.result_image_path]);
+      }
 
       setMessage(editingForecast ? "Forecast updated for every website visitor." : "Forecast published for every website visitor.");
       resetForm();
@@ -313,6 +427,9 @@ const DailyForecastAdmin = () => {
     } catch (saveError) {
       if (replacementPath) {
         await supabase.storage.from("forecast-images").remove([replacementPath]);
+      }
+      if (resultReplacementPath) {
+        await supabase.storage.from("forecast-images").remove([resultReplacementPath]);
       }
       setError(saveError instanceof Error ? saveError.message : "Unable to publish this forecast.");
     } finally {
@@ -355,6 +472,36 @@ const DailyForecastAdmin = () => {
                   <Button type="button" variant="secondary" onClick={() => void handleReadImage()} disabled={!imageFile || isReadingImage}>
                     {isReadingImage ? "Reading image…" : "Read trade values with AI"}
                   </Button>
+
+                  {editingForecast ? (
+                    <div className="space-y-3 rounded-lg border p-4">
+                      <div>
+                        <p className="text-sm font-semibold">Close trade with result evidence</p>
+                        <p className="text-xs text-muted-foreground">Upload a closing screenshot. AI suggests a result, but you must confirm it before saving.</p>
+                      </div>
+                      <Input
+                        id="forecast-result-image"
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => void handleResultImageChange(event.target.files?.[0])}
+                      />
+                      <Button type="button" variant="secondary" onClick={() => void handleReadResult()} disabled={!resultImageFile || isReadingResult}>
+                        {isReadingResult ? "Reviewing result…" : "Read result screenshot with AI"}
+                      </Button>
+                      {resultReview ? (
+                        <div className="rounded-md bg-muted p-3 text-sm">
+                          <p><span className="font-semibold">AI suggestion:</span> {resultReview.suggestion.toUpperCase()} ({resultReview.confidence} confidence)</p>
+                          <p className="mt-1 text-muted-foreground">{resultReview.notes}</p>
+                          {resultReview.suggestion === "win" || resultReview.suggestion === "loss" || resultReview.suggestion === "active" ? (
+                            <Button type="button" size="sm" className="mt-3" onClick={() => setField("status", resultReview.suggestion as TradeStatus)}>
+                              Apply suggestion to status
+                            </Button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {resultPreviewUrl ? <img src={resultPreviewUrl} alt="Result screenshot preview" className="h-40 w-full rounded-lg object-cover" /> : null}
+                    </div>
+                  ) : null}
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
