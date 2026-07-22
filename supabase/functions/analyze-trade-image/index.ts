@@ -54,7 +54,9 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: "Only the admin can analyse forecast images." }, 403);
   }
 
-  const { image } = await request.json().catch(() => ({ image: "" }));
+  const { image, mode, trade } = await request.json().catch(() => ({ image: "", mode: "setup", trade: null }));
+  const isResultCheck = mode === "result";
+
   if (
     typeof image !== "string" ||
     !image.startsWith("data:image/jpeg;base64,") ||
@@ -71,29 +73,44 @@ Deno.serve(async (request) => {
     );
   }
 
-  const instructions = [
-    "Analyse this TradingView trade screenshot as an ICT (Inner Circle Trader) chart reader.",
-    "First read all numerical labels from the position tool, price scale, and order labels before analysing the chart.",
-    "For a short / sell position tool: execution is the entry line, stop loss is the upper risk boundary or stop label, and take profit is the lower target boundary or target label.",
-    "For a long / buy position tool: execution is the entry line, stop loss is the lower risk boundary or stop label, and take profit is the upper target boundary or target label.",
-    "Return stopLoss whenever its number is visibly readable. Use null only when no stop-loss number can be read clearly; never invent a price.",
-    "Identify only ICT concepts visible in the screenshot: buy-side or sell-side liquidity, liquidity sweep, displacement, market-structure shift, fair value gap, order block, premium/discount, and likely target liquidity.",
-    "Do not create a trade recommendation, guarantee an outcome, or claim an ICT concept is present when it cannot be seen.",
-    "Return only valid JSON with:",
-    "{",
-    '  "market": "Forex | Indices | Commodities | Crypto | null",',
-    '  "symbol": "string or null",',
-    '  "direction": "long | short | null",',
-    '  "executionPrice": number or null,',
-    '  "stopLoss": number or null,',
-    '  "takeProfit1": number or null,',
-    '  "takeProfit2": number or null,',
-    '  "status": "active | win | loss",',
-    '  "notes": "2-4 factual sentences: timeframe, visible setup, visible ICT concepts, and target/risk context. State uncertainty where needed.",',
-    '  "confidence": "high | medium | low"',
-    "}",
-    "Use win or loss only if the screenshot explicitly proves the completed outcome. Otherwise use active.",
-  ].join("\n");
+  const instructions = isResultCheck
+    ? [
+        "Review this TradingView result screenshot as evidence for an already published trade.",
+        "Trade values: " + JSON.stringify(trade ?? {}),
+        "Suggest win only if the screenshot clearly shows take profit reached, a profitable close, or a completed positive result.",
+        "Suggest loss only if it clearly shows stop loss reached, a losing close, or a completed negative result.",
+        "Suggest active if it is still open. Use unclear if the image does not prove the result.",
+        "Do not invent a result or make a trading recommendation.",
+        "Return only valid JSON with:",
+        "{",
+        '  "suggestion": "win | loss | active | unclear",',
+        '  "notes": "short factual explanation of the visible evidence",',
+        '  "confidence": "high | medium | low"',
+        "}",
+      ].join("\n")
+    : [
+        "Analyse this TradingView trade screenshot as an ICT (Inner Circle Trader) chart reader.",
+        "First read all numerical labels from the position tool, price scale, and order labels before analysing the chart.",
+        "For a short / sell position tool: execution is the entry line, stop loss is the upper risk boundary or stop label, and take profit is the lower target boundary or target label.",
+        "For a long / buy position tool: execution is the entry line, stop loss is the lower risk boundary or stop label, and take profit is the upper target boundary or target label.",
+        "Return stopLoss whenever its number is visibly readable. Use null only when no stop-loss number can be read clearly; never invent a price.",
+        "Identify only ICT concepts visible in the screenshot: buy-side or sell-side liquidity, liquidity sweep, displacement, market-structure shift, fair value gap, order block, premium/discount, and likely target liquidity.",
+        "Do not create a trade recommendation, guarantee an outcome, or claim an ICT concept is present when it cannot be seen.",
+        "Return only valid JSON with:",
+        "{",
+        '  "market": "Forex | Indices | Commodities | Crypto | null",',
+        '  "symbol": "string or null",',
+        '  "direction": "long | short | null",',
+        '  "executionPrice": number or null,',
+        '  "stopLoss": number or null,',
+        '  "takeProfit1": number or null,',
+        '  "takeProfit2": number or null,',
+        '  "status": "active | win | loss",',
+        '  "notes": "2-4 factual sentences: timeframe, visible setup, visible ICT concepts, and target/risk context. State uncertainty where needed.",',
+        '  "confidence": "high | medium | low"',
+        "}",
+        "Use win or loss only if the screenshot explicitly proves the completed outcome. Otherwise use active.",
+      ].join("\n");
 
   const imageBase64 = image.slice("data:image/jpeg;base64,".length);
   const model = "gemini-3.6-flash";
@@ -139,8 +156,8 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const extraction = JSON.parse(text.replace(/^\`\`\`json\s*|\s*\`\`\`$/g, ""));
-    return jsonResponse({ extraction });
+    const parsed = JSON.parse(text.replace(/^\`\`\`json\s*|\s*\`\`\`$/g, ""));
+    return isResultCheck ? jsonResponse({ result: parsed }) : jsonResponse({ extraction: parsed });
   } catch {
     return jsonResponse({ error: "The AI response was not in the expected format." }, 422);
   }
