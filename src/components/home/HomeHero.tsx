@@ -151,7 +151,7 @@ export function HomeHero() {
                       </a>
                     </Button>
                     <Button asChild variant="secondary" className="rounded-full px-6">
-                      <a href="/resources">View Daily Forecast</a>
+                      <a href="/forecast">View Daily Forecast</a>
                     </Button>
                     <Button asChild variant="outline" className="rounded-full px-6">
                       <a href="/contact">Book a Call</a>
