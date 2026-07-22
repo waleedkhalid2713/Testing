@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      user_activity_events: {
+        Row: {
+          id: string
+          page: string
+          region: string
+          user_id: string
+          visited_at: string
+        }
+        Insert: {
+          id?: string
+          page: string
+          region?: string
+          user_id: string
+          visited_at?: string
+        }
+        Update: {
+          id?: string
+          page?: string
+          region?: string
+          user_id?: string
+          visited_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           email: string
