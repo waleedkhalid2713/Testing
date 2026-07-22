@@ -12,6 +12,7 @@ import {
 } from "recharts";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/site/PageHero";
 import heroImage from "@/assets/module-forecast-daily.jpg";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,6 +57,23 @@ const dateLabel = (value: string) =>
     month: "short",
     day: "numeric",
   }).format(new Date(value));
+
+const csvCell = (value: string | number) => {
+  const text = String(value);
+  const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${safeText.replace(/"/g, '""')}"`;
+};
+
+const downloadCsv = (fileName: string, headers: string[], rows: Array<Array<string | number>>) => {
+  const content = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  const file = new Blob([`\uFEFF${content}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+};
 
 const AdminDashboard = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -110,6 +128,11 @@ const AdminDashboard = () => {
     });
   }, [activity, period, region]);
 
+  const filteredProfiles = useMemo(
+    () => profiles.filter((profile) => region === "all" || profile.region === region),
+    [profiles, region],
+  );
+
   const pageVisits = useMemo(() => {
     const counts = new Map<string, number>();
 
@@ -144,6 +167,30 @@ const AdminDashboard = () => {
   }, [filteredActivity]);
 
   const topPage = pageVisits[0]?.page ?? "No activity yet";
+
+  const exportUsers = () => {
+    downloadCsv(
+      "epic-trader-users.csv",
+      ["Email of User", "Date of Incorporation", "Region"],
+      filteredProfiles.map((profile) => [
+        profile.email,
+        formatDate(profile.incorporated_at),
+        profile.region,
+      ]),
+    );
+  };
+
+  const exportActivity = () => {
+    downloadCsv(
+      "epic-trader-activity.csv",
+      ["Page", "Region", "Visited At"],
+      filteredActivity.map((event) => [
+        pageLabel(event.page),
+        event.region,
+        formatDate(event.visited_at),
+      ]),
+    );
+  };
 
   return (
     <div>
@@ -198,7 +245,7 @@ const AdminDashboard = () => {
               <CardTitle>Registered users</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-semibold">{profiles.length}</p>
+              <p className="text-3xl font-semibold">{filteredProfiles.length}</p>
             </CardContent>
           </Card>
           <Card>
@@ -218,6 +265,21 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Export data</CardTitle>
+            <CardDescription>Download CSV files that open directly in Microsoft Excel.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Button type="button" variant="secondary" onClick={exportUsers} disabled={!filteredProfiles.length}>
+              Export users CSV
+            </Button>
+            <Button type="button" variant="secondary" onClick={exportActivity} disabled={!filteredActivity.length}>
+              Export filtered activity CSV
+            </Button>
+          </CardContent>
+        </Card>
 
         {loading ? <p className="text-sm text-muted-foreground">Loading dashboard…</p> : null}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -285,8 +347,8 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {profiles.length ? (
-                      profiles.map((profile) => (
+                    {filteredProfiles.length ? (
+                      filteredProfiles.map((profile) => (
                         <tr key={profile.id} className="border-b">
                           <td className="py-3 pr-4">{profile.email}</td>
                           <td className="py-3 pr-4">{formatDate(profile.incorporated_at)}</td>
