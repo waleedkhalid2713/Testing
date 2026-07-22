@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,283 +7,324 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHero } from "@/components/site/PageHero";
 import { Reveal } from "@/components/site/Reveal";
 import heroImage from "@/assets/module-forecast-daily.jpg";
-import { z } from "zod";
+import { compressForecastImage, fileToDataUrl } from "@/lib/compressForecastImage";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
-type Market = {
-  id: string;
-  name: string;
-  pairs: string[];
-};
+type Instrument = Tables<"trading_instruments">;
+type Forecast = Tables<"trading_forecasts">;
+type TradeStatus = "active" | "win" | "loss";
 
-type ForecastEntry = {
-  id: string;
-  marketId: string;
-  pair: string;
-  date: string;
-  session: string;
-  time: string;
-  structure: string;
-  poi: string;
+type Extraction = {
+  market: string | null;
+  symbol: string | null;
+  direction: "long" | "short" | null;
+  executionPrice: number | null;
+  stopLoss: number | null;
+  takeProfit1: number | null;
+  takeProfit2: number | null;
+  status: TradeStatus;
   notes: string;
-  result?: string;
-  imageDataUrl?: string;
-  savedAt: string;
+  confidence: "high" | "medium" | "low";
 };
 
-type ForecastStore = {
-  markets: Market[];
-  forecasts: ForecastEntry[];
+type FormState = {
+  instrumentId: string;
+  direction: "long" | "short";
+  executionPrice: string;
+  stopLoss: string;
+  takeProfit1: string;
+  takeProfit2: string;
+  status: TradeStatus;
+  tradeDate: string;
+  notes: string;
 };
 
-const STORAGE_KEY = "epic-trader-forecast-store";
+const today = () => new Date().toISOString().slice(0, 10);
 
-const MAX_FORECAST_TEXT = 5000;
-const forecastSchema = z.object({
-  structure: z.string().trim().max(MAX_FORECAST_TEXT),
-  poi: z.string().trim().max(MAX_FORECAST_TEXT),
-  notes: z.string().trim().max(MAX_FORECAST_TEXT),
-  result: z.string().trim().max(MAX_FORECAST_TEXT).optional(),
-  date: z.string().trim().max(32),
-  session: z.string().trim().max(32),
-  time: z.string().trim().max(16),
+const emptyForm = (): FormState => ({
+  instrumentId: "",
+  direction: "long",
+  executionPrice: "",
+  stopLoss: "",
+  takeProfit1: "",
+  takeProfit2: "",
+  status: "active",
+  tradeDate: today(),
+  notes: "",
 });
 
-const DailyForecastAdmin = () => {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [structure, setStructure] = useState("");
-  const [poi, setPoi] = useState("");
-  const [notes, setNotes] = useState("");
-  const [result, setResult] = useState("");
-  const [marketName, setMarketName] = useState("");
-  const [pairName, setPairName] = useState("");
-  const [selectedMarketId, setSelectedMarketId] = useState("");
-  const [selectedPair, setSelectedPair] = useState("");
-  const [pairMarketId, setPairMarketId] = useState("");
-  const [date, setDate] = useState("");
-  const [session, setSession] = useState("London");
-  const [time, setTime] = useState("");
-  const [savedAt, setSavedAt] = useState("");
-  const [editingForecastId, setEditingForecastId] = useState<string | null>(null);
-  const [store, setStore] = useState<ForecastStore>({ markets: [], forecasts: [] });
-  const [formError, setFormError] = useState<string>("");
+const normaliseSymbol = (symbol: string) => symbol.replace(/[^a-z0-9]/gi, "").toLowerCase();
 
-  const selectedMarket = useMemo(
-    () => store.markets.find((m) => m.id === selectedMarketId) ?? null,
-    [store.markets, selectedMarketId],
+const DailyForecastAdmin = () => {
+  const [instruments, setInstruments] = useState<Instrument[]>([]);
+  const [forecasts, setForecasts] = useState<Forecast[]>([]);
+  const [form, setForm] = useState<FormState>(emptyForm);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [editingForecast, setEditingForecast] = useState<Forecast | null>(null);
+  const [extraction, setExtraction] = useState<Extraction | null>(null);
+  const [isReadingImage, setIsReadingImage] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const selectedInstrument = useMemo(
+    () => instruments.find((instrument) => instrument.id === form.instrumentId) ?? null,
+    [form.instrumentId, instruments],
   );
 
-  useEffect(() => {
-    if (selectedMarket && !selectedMarket.pairs.includes(selectedPair)) {
-      setSelectedPair(selectedMarket.pairs[0] ?? "");
+  const loadData = async () => {
+    const [{ data: instrumentRows, error: instrumentError }, { data: forecastRows, error: forecastError }] =
+      await Promise.all([
+        supabase.from("trading_instruments").select("*").eq("is_active", true).order("display_order"),
+        supabase.from("trading_forecasts").select("*").order("published_at", { ascending: false }),
+      ]);
+
+    if (instrumentError || forecastError) {
+      setError("Unable to load forecasts. Run the new Supabase SQL file first.");
+      return;
     }
-  }, [selectedMarket, selectedPair]);
+
+    setInstruments(instrumentRows ?? []);
+    setForecasts(forecastRows ?? []);
+  };
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored) as ForecastStore;
-      setStore(parsed);
-      if (parsed.markets[0]) {
-        setSelectedMarketId(parsed.markets[0].id);
-        setPairMarketId(parsed.markets[0].id);
-        setSelectedPair(parsed.markets[0].pairs[0] ?? "");
-      }
-    }
+    void loadData();
   }, []);
 
-  const persistStore = (next: ForecastStore) => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setStore(next);
+  const setField = <Key extends keyof FormState>(key: Key, value: FormState[Key]) => {
+    setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const handleAddMarket = () => {
-    if (!marketName.trim()) {
-      return;
-    }
-    const newMarket: Market = {
-      id: crypto.randomUUID(),
-      name: marketName.trim(),
-      pairs: [],
-    };
-    const next = {
-      ...store,
-      markets: [...store.markets, newMarket],
-    };
-    persistStore(next);
-    setMarketName("");
-    setSelectedMarketId(newMarket.id);
-    setPairMarketId(newMarket.id);
-  };
+  const handleImageChange = async (file: File | undefined) => {
+    setError("");
+    setMessage("");
+    setExtraction(null);
 
-  const handleAddPair = () => {
-    if (!pairName.trim() || !pairMarketId) {
-      return;
-    }
-    const nextMarkets = store.markets.map((market) =>
-      market.id === pairMarketId && !market.pairs.includes(pairName.trim())
-        ? { ...market, pairs: [...market.pairs, pairName.trim()] }
-        : market,
-    );
-    persistStore({ ...store, markets: nextMarkets });
-    setPairName("");
-  };
-
-  const handleEditMarket = (marketId: string) => {
-    const current = store.markets.find((market) => market.id === marketId);
-    if (!current) {
-      return;
-    }
-    const nextName = window.prompt("Edit market name", current.name);
-    if (!nextName) {
-      return;
-    }
-    const nextMarkets = store.markets.map((market) =>
-      market.id === marketId ? { ...market, name: nextName.trim() } : market,
-    );
-    persistStore({ ...store, markets: nextMarkets });
-  };
-
-  const handleDeleteMarket = (marketId: string) => {
-    const nextMarkets = store.markets.filter((market) => market.id !== marketId);
-    const nextForecasts = store.forecasts.filter((forecast) => forecast.marketId !== marketId);
-    persistStore({ markets: nextMarkets, forecasts: nextForecasts });
-    if (selectedMarketId === marketId) {
-      setSelectedMarketId(nextMarkets[0]?.id ?? "");
-      setSelectedPair(nextMarkets[0]?.pairs[0] ?? "");
-    }
-    if (pairMarketId === marketId) {
-      setPairMarketId(nextMarkets[0]?.id ?? "");
-    }
-  };
-
-  const handleEditPair = (marketId: string, pair: string) => {
-    const nextPair = window.prompt("Edit pair name", pair);
-    if (!nextPair) {
-      return;
-    }
-    const nextMarkets = store.markets.map((market) =>
-      market.id === marketId
-        ? {
-            ...market,
-            pairs: market.pairs.map((p) => (p === pair ? nextPair.trim() : p)),
-          }
-        : market,
-    );
-    persistStore({
-      ...store,
-      markets: nextMarkets,
-      forecasts: store.forecasts.map((forecast) =>
-        forecast.marketId === marketId && forecast.pair === pair
-          ? { ...forecast, pair: nextPair.trim() }
-          : forecast,
-      ),
-    });
-  };
-
-  const handleDeletePair = (marketId: string, pair: string) => {
-    const nextMarkets = store.markets.map((market) =>
-      market.id === marketId ? { ...market, pairs: market.pairs.filter((p) => p !== pair) } : market,
-    );
-    const nextForecasts = store.forecasts.filter(
-      (forecast) => !(forecast.marketId === marketId && forecast.pair === pair),
-    );
-    persistStore({ markets: nextMarkets, forecasts: nextForecasts });
-    if (selectedMarketId === marketId && selectedPair === pair) {
-      const nextMarket = nextMarkets.find((market) => market.id === marketId);
-      setSelectedPair(nextMarket?.pairs[0] ?? "");
-    }
-  };
-
-  const handleSaveForecast = async () => {
-    setFormError("");
-    if (!selectedMarketId || !selectedPair) {
-      setFormError("Please select a market and pair.");
+    if (!file) {
       return;
     }
 
-    const parsed = forecastSchema.safeParse({
-      structure,
-      poi,
-      notes,
-      result,
-      date,
-      session,
-      time,
-    });
+    try {
+      const compressed = await compressForecastImage(file);
+      setImageFile(compressed);
+      setPreviewUrl(URL.createObjectURL(compressed));
+      setMessage(`Image prepared: ${Math.ceil(compressed.size / 1024)} KB. It will use less storage.`);
+    } catch (imageError) {
+      setImageFile(null);
+      setPreviewUrl(null);
+      setError(imageError instanceof Error ? imageError.message : "Unable to prepare this image.");
+    }
+  };
 
-    if (!parsed.success) {
-      setFormError("Please review the forecast fields. One or more values are too long or invalid.");
+  const handleReadImage = async () => {
+    if (!imageFile) {
+      setError("Upload a TradingView image before asking AI to read it.");
       return;
     }
 
-    let imageDataUrl: string | undefined;
+    setIsReadingImage(true);
+    setError("");
+    setMessage("");
 
-    if (imageFile) {
-      imageDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error("Unable to read file"));
-        reader.readAsDataURL(imageFile);
+    try {
+      const image = await fileToDataUrl(imageFile);
+      const { data, error: functionError } = await supabase.functions.invoke("analyze-trade-image", {
+        body: { image },
       });
+
+      if (functionError || data?.error) {
+        throw new Error(data?.error ?? functionError?.message ?? "AI could not read this image.");
+      }
+
+      const nextExtraction = data?.extraction as Extraction | undefined;
+      if (!nextExtraction) {
+        throw new Error("AI did not return trade values.");
+      }
+
+      setExtraction(nextExtraction);
+      const matchedInstrument = instruments.find(
+        (instrument) =>
+          nextExtraction.symbol &&
+          normaliseSymbol(instrument.symbol) === normaliseSymbol(nextExtraction.symbol),
+      );
+
+      setForm((current) => ({
+        ...current,
+        instrumentId: matchedInstrument?.id ?? current.instrumentId,
+        direction: nextExtraction.direction ?? current.direction,
+        executionPrice: nextExtraction.executionPrice?.toString() ?? current.executionPrice,
+        stopLoss: nextExtraction.stopLoss?.toString() ?? current.stopLoss,
+        takeProfit1: nextExtraction.takeProfit1?.toString() ?? current.takeProfit1,
+        takeProfit2: nextExtraction.takeProfit2?.toString() ?? current.takeProfit2,
+        status: nextExtraction.status ?? current.status,
+        notes: nextExtraction.notes || current.notes,
+      }));
+
+      setMessage(
+        matchedInstrument
+          ? `AI filled the visible values (${nextExtraction.confidence} confidence). Please check them before publishing.`
+          : "AI read the image, but you must choose one of the supported instruments before publishing.",
+      );
+    } catch (analysisError) {
+      setError(analysisError instanceof Error ? analysisError.message : "AI could not read this image.");
+    } finally {
+      setIsReadingImage(false);
+    }
+  };
+
+  const resetForm = () => {
+    setForm(emptyForm());
+    setImageFile(null);
+    setPreviewUrl(null);
+    setExtraction(null);
+    setEditingForecast(null);
+  };
+
+  const handleEdit = (forecast: Forecast) => {
+    setEditingForecast(forecast);
+    setForm({
+      instrumentId: forecast.instrument_id,
+      direction: forecast.direction as "long" | "short",
+      executionPrice: forecast.execution_price.toString(),
+      stopLoss: forecast.stop_loss.toString(),
+      takeProfit1: forecast.take_profit_1.toString(),
+      takeProfit2: forecast.take_profit_2?.toString() ?? "",
+      status: forecast.status as TradeStatus,
+      tradeDate: forecast.trade_date,
+      notes: forecast.notes,
+    });
+    setPreviewUrl(supabase.storage.from("forecast-images").getPublicUrl(forecast.image_path).data.publicUrl);
+    setImageFile(null);
+    setExtraction((forecast.ai_extraction as Extraction | null) ?? null);
+    setError("");
+    setMessage("You are editing a published forecast. Upload a new image only if you want to replace it.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (forecast: Forecast) => {
+    if (!window.confirm("Delete this forecast and its image?")) {
+      return;
     }
 
-    const payload: ForecastEntry = {
-      id: editingForecastId ?? crypto.randomUUID(),
-      marketId: selectedMarketId,
-      pair: selectedPair,
-      date: parsed.data.date,
-      session: parsed.data.session,
-      time: parsed.data.time,
-      imageDataUrl,
-      structure: parsed.data.structure,
-      poi: parsed.data.poi,
-      notes: parsed.data.notes,
-      result: parsed.data.result,
-      savedAt: savedAt ? new Date(savedAt).toISOString() : new Date().toISOString(),
-    };
+    setError("");
+    const { error: deleteError } = await supabase.from("trading_forecasts").delete().eq("id", forecast.id);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
 
-    const nextForecasts = editingForecastId
-      ? store.forecasts.map((forecast) => (forecast.id === editingForecastId ? payload : forecast))
-      : [payload, ...store.forecasts];
+    const { error: storageError } = await supabase.storage.from("forecast-images").remove([forecast.image_path]);
+    if (storageError) {
+      setError("Forecast was deleted, but its image could not be removed: " + storageError.message);
+    }
 
-    const next = {
-      ...store,
-      forecasts: nextForecasts,
-    };
-    persistStore(next);
-    setEditingForecastId(null);
-    setSavedAt("");
+    setMessage("Forecast deleted.");
+    await loadData();
   };
 
-  const handleEditForecast = (forecast: ForecastEntry) => {
-    setEditingForecastId(forecast.id);
-    setSelectedMarketId(forecast.marketId);
-    setSelectedPair(forecast.pair);
-    setDate(forecast.date);
-    setSession(forecast.session);
-    setTime(forecast.time);
-    setStructure(forecast.structure);
-    setPoi(forecast.poi);
-    setNotes(forecast.notes);
-    setResult(forecast.result ?? "");
-    setPreviewUrl(forecast.imageDataUrl ?? null);
-    setSavedAt(forecast.savedAt ? new Date(forecast.savedAt).toISOString().slice(0, 16) : "");
-  };
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
 
-  const handleDeleteForecast = (forecastId: string) => {
-    const next = {
-      ...store,
-      forecasts: store.forecasts.filter((forecast) => forecast.id !== forecastId),
-    };
-    persistStore(next);
+    const executionPrice = Number(form.executionPrice);
+    const stopLoss = Number(form.stopLoss);
+    const takeProfit1 = Number(form.takeProfit1);
+    const takeProfit2 = form.takeProfit2 ? Number(form.takeProfit2) : null;
+
+    if (
+      !form.instrumentId ||
+      !Number.isFinite(executionPrice) ||
+      executionPrice <= 0 ||
+      !Number.isFinite(stopLoss) ||
+      stopLoss <= 0 ||
+      !Number.isFinite(takeProfit1) ||
+      takeProfit1 <= 0 ||
+      (takeProfit2 !== null && (!Number.isFinite(takeProfit2) || takeProfit2 <= 0))
+    ) {
+      setError("Choose an instrument and enter valid execution, stop-loss, and take-profit prices.");
+      return;
+    }
+
+    if (!editingForecast && !imageFile) {
+      setError("Upload a TradingView screenshot before publishing.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    let imagePath = editingForecast?.image_path ?? "";
+    let replacementPath: string | null = null;
+
+    try {
+      if (imageFile) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error("Your admin session has ended. Please sign in again.");
+        }
+
+        replacementPath = `${user.id}/${crypto.randomUUID()}.jpg`;
+        const { error: uploadError } = await supabase.storage.from("forecast-images").upload(replacementPath, imageFile, {
+          cacheControl: "31536000",
+          contentType: "image/jpeg",
+          upsert: false,
+        });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        imagePath = replacementPath;
+      }
+
+      const payload = {
+        instrument_id: form.instrumentId,
+        direction: form.direction,
+        execution_price: executionPrice,
+        stop_loss: stopLoss,
+        take_profit_1: takeProfit1,
+        take_profit_2: takeProfit2,
+        status: form.status,
+        trade_date: form.tradeDate,
+        notes: form.notes.trim(),
+        image_path: imagePath,
+        ai_extraction: extraction,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error: saveError } = editingForecast
+        ? await supabase.from("trading_forecasts").update(payload).eq("id", editingForecast.id)
+        : await supabase.from("trading_forecasts").insert(payload);
+
+      if (saveError) {
+        throw saveError;
+      }
+
+      if (replacementPath && editingForecast?.image_path) {
+        await supabase.storage.from("forecast-images").remove([editingForecast.image_path]);
+      }
+
+      setMessage(editingForecast ? "Forecast updated for every website visitor." : "Forecast published for every website visitor.");
+      resetForm();
+      await loadData();
+    } catch (saveError) {
+      if (replacementPath) {
+        await supabase.storage.from("forecast-images").remove([replacementPath]);
+      }
+      setError(saveError instanceof Error ? saveError.message : "Unable to publish this forecast.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div>
       <PageHero
-        title="Daily Forecast Admin"
-        subtitle="Upload the latest forecast image and add Structure, POI, and supporting notes."
+        title="AI Trade Forecast Admin"
+        subtitle="Upload a TradingView screenshot, let AI prefill the trade values, then confirm and publish."
         imageSrc={heroImage}
         imageAlt="Forecast dashboard with candlestick charts"
       />
@@ -291,291 +332,92 @@ const DailyForecastAdmin = () => {
       <div className="container py-12">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <Reveal>
-            <Card className="hover-glow lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Trading markets &amp; pairs</CardTitle>
-                <CardDescription>Add, edit, or remove markets and currency pairs.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium" htmlFor="market-name">
-                      Add trading market
-                    </label>
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <Input
-                        id="market-name"
-                        placeholder="Forex, Indices, Commodities..."
-                        value={marketName}
-                        onChange={(event) => setMarketName(event.target.value)}
-                      />
-                      <Button type="button" onClick={handleAddMarket}>
-                        Add Market
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium" htmlFor="pair-name">
-                      Add pair to market
-                    </label>
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <select
-                        className="h-10 rounded-md border bg-background px-3 text-sm"
-                        value={pairMarketId}
-                        onChange={(event) => setPairMarketId(event.target.value)}
-                      >
-                        <option value="">Select market</option>
-                        {store.markets.map((market) => (
-                          <option key={market.id} value={market.id}>
-                            {market.name}
-                          </option>
-                        ))}
-                      </select>
-                      <Input
-                        id="pair-name"
-                        placeholder="EUR/USD, GBP/JPY..."
-                        value={pairName}
-                        onChange={(event) => setPairName(event.target.value)}
-                      />
-                      <Button type="button" variant="secondary" onClick={handleAddPair}>
-                        Add Pair
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  {store.markets.length ? (
-                    store.markets.map((market) => (
-                      <Card key={market.id} className="border bg-background/40">
-                        <CardHeader className="flex flex-row items-start justify-between gap-4">
-                          <div>
-                            <CardTitle className="text-base">{market.name}</CardTitle>
-                            <CardDescription>{market.pairs.length} pairs</CardDescription>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="secondary" onClick={() => handleEditMarket(market.id)}>
-                              Edit
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteMarket(market.id)}>
-                              Delete
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                          {market.pairs.length ? (
-                            market.pairs.map((pair) => (
-                              <div key={pair} className="flex items-center justify-between rounded-md border px-3 py-2">
-                                <p className="text-sm font-medium">{pair}</p>
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleEditPair(market.id, pair)}
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleDeletePair(market.id, pair)}
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-muted-foreground">No pairs yet.</p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Add your first trading market to get started.
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </Reveal>
-
-          <Reveal>
             <Card className="hover-glow">
               <CardHeader>
-                <CardTitle>Daily forecast upload</CardTitle>
+                <CardTitle>{editingForecast ? "Edit published forecast" : "Publish a trade forecast"}</CardTitle>
                 <CardDescription>
-                  Provide the image and key context that traders need. Saved forecasts appear below.
+                  Covered markets: Forex, Indices, Commodities, and Crypto. Images are compressed to 450 KB or less before upload.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
+              <CardContent>
+                <form className="space-y-5" onSubmit={handleSubmit}>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="market-select">
-                      Trading market
-                    </label>
-                    <select
-                      id="market-select"
-                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      value={selectedMarketId}
-                      onChange={(event) => setSelectedMarketId(event.target.value)}
-                    >
-                      <option value="">Select market</option>
-                      {store.markets.map((market) => (
-                        <option key={market.id} value={market.id}>
-                          {market.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="pair-select">
-                      Currency pair
-                    </label>
-                    <select
-                      id="pair-select"
-                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      value={selectedPair}
-                      onChange={(event) => setSelectedPair(event.target.value)}
-                    >
-                      <option value="">Select pair</option>
-                      {selectedMarket?.pairs.map((pair) => (
-                        <option key={pair} value={pair}>
-                          {pair}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="forecast-date">
-                      Date
-                    </label>
+                    <label className="text-sm font-medium" htmlFor="forecast-image">TradingView image</label>
                     <Input
-                      id="forecast-date"
-                      type="date"
-                      value={date}
-                      onChange={(event) => setDate(event.target.value)}
+                      id="forecast-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => void handleImageChange(event.target.files?.[0])}
                     />
+                    <p className="text-xs text-muted-foreground">The image is converted to compressed JPEG before it is saved.</p>
                   </div>
+
+                  <Button type="button" variant="secondary" onClick={() => void handleReadImage()} disabled={!imageFile || isReadingImage}>
+                    {isReadingImage ? "Reading image…" : "Read trade values with AI"}
+                  </Button>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="instrument">Instrument</label>
+                      <select id="instrument" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.instrumentId} onChange={(event) => setField("instrumentId", event.target.value)}>
+                        <option value="">Choose instrument</option>
+                        {instruments.map((instrument) => (
+                          <option key={instrument.id} value={instrument.id}>{instrument.market} — {instrument.symbol}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="direction">Direction</label>
+                      <select id="direction" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.direction} onChange={(event) => setField("direction", event.target.value as "long" | "short")}>
+                        <option value="long">Long / Buy</option>
+                        <option value="short">Short / Sell</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="execution-price">Execution price</label>
+                      <Input id="execution-price" inputMode="decimal" value={form.executionPrice} onChange={(event) => setField("executionPrice", event.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="stop-loss">Stop loss</label>
+                      <Input id="stop-loss" inputMode="decimal" value={form.stopLoss} onChange={(event) => setField("stopLoss", event.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="take-profit-1">Take profit 1</label>
+                      <Input id="take-profit-1" inputMode="decimal" value={form.takeProfit1} onChange={(event) => setField("takeProfit1", event.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="take-profit-2">Take profit 2 (optional)</label>
+                      <Input id="take-profit-2" inputMode="decimal" value={form.takeProfit2} onChange={(event) => setField("takeProfit2", event.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="trade-date">Trade date</label>
+                      <Input id="trade-date" type="date" value={form.tradeDate} onChange={(event) => setField("tradeDate", event.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" htmlFor="status">Result status</label>
+                      <select id="status" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.status} onChange={(event) => setField("status", event.target.value as TradeStatus)}>
+                        <option value="active">Active</option>
+                        <option value="win">Win</option>
+                        <option value="loss">Loss</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="forecast-session">
-                      Session
-                    </label>
-                    <select
-                      id="forecast-session"
-                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                      value={session}
-                      onChange={(event) => setSession(event.target.value)}
-                    >
-                      <option value="Asia">Asia</option>
-                      <option value="London">London</option>
-                      <option value="New York">New York</option>
-                    </select>
+                    <label className="text-sm font-medium" htmlFor="notes">Trade notes</label>
+                    <Textarea id="notes" rows={4} maxLength={2000} value={form.notes} onChange={(event) => setField("notes", event.target.value)} placeholder="Optional context visible in the setup." />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="forecast-time">
-                      Time (optional)
-                    </label>
-                    <Input
-                      id="forecast-time"
-                      type="time"
-                      value={time}
-                      onChange={(event) => setTime(event.target.value)}
-                    />
+
+                  {selectedInstrument ? <p className="text-sm text-muted-foreground">Publishing for {selectedInstrument.market} — {selectedInstrument.symbol}.</p> : null}
+                  {extraction ? <p className="text-sm text-muted-foreground">AI confidence: {extraction.confidence}. Always check every field against the image.</p> : null}
+                  {error ? <p className="text-sm text-destructive">{error}</p> : null}
+                  {message ? <p className="text-sm text-emerald-600">{message}</p> : null}
+
+                  <div className="flex flex-wrap gap-3">
+                    <Button type="submit" className="rounded-full px-6" disabled={isSaving}>{isSaving ? "Publishing…" : editingForecast ? "Update forecast" : "Publish forecast"}</Button>
+                    {editingForecast ? <Button type="button" variant="secondary" onClick={resetForm}>Cancel editing</Button> : null}
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="forecast-saved-at">
-                      Saved time (admin only)
-                    </label>
-                    <Input
-                      id="forecast-saved-at"
-                      type="datetime-local"
-                      value={savedAt}
-                      onChange={(event) => setSavedAt(event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="forecast-image">
-                    Forecast image
-                  </label>
-                  <Input
-                    id="forecast-image"
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) {
-                        setImageFile(file);
-                        setPreviewUrl(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="structure-notes">
-                    Structure
-                  </label>
-                  <Textarea
-                    id="structure-notes"
-                    placeholder="Describe market structure, bias, and key levels."
-                    rows={4}
-                    maxLength={MAX_FORECAST_TEXT}
-                    value={structure}
-                    onChange={(event) => setStructure(event.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="poi-notes">
-                    POI (Points of Interest)
-                  </label>
-                  <Textarea
-                    id="poi-notes"
-                    placeholder="Highlight POIs, liquidity zones, and timing windows."
-                    rows={4}
-                    maxLength={MAX_FORECAST_TEXT}
-                    value={poi}
-                    onChange={(event) => setPoi(event.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="extra-notes">
-                    Additional notes
-                  </label>
-                  <Textarea
-                    id="extra-notes"
-                    placeholder="Risk plan, invalidation rules, and session notes."
-                    rows={4}
-                    maxLength={MAX_FORECAST_TEXT}
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="forecast-result">
-                    Forecast result
-                  </label>
-                  <Textarea
-                    id="forecast-result"
-                    placeholder="Post the result for this forecast."
-                    rows={3}
-                    maxLength={MAX_FORECAST_TEXT}
-                    value={result}
-                    onChange={(event) => setResult(event.target.value)}
-                  />
-                </div>
-
-                {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
-
-                <Button type="button" className="rounded-full px-6" onClick={handleSaveForecast}>
-                  {editingForecastId ? "Update forecast" : "Save forecast"}
-                </Button>
+                </form>
               </CardContent>
             </Card>
           </Reveal>
@@ -583,21 +425,11 @@ const DailyForecastAdmin = () => {
           <Reveal delayMs={120}>
             <Card className="overflow-hidden">
               <CardHeader>
-                <CardTitle>Preview</CardTitle>
-                <CardDescription>Uploaded image preview.</CardDescription>
+                <CardTitle>Compressed preview</CardTitle>
+                <CardDescription>Only this compressed image is stored in Supabase.</CardDescription>
               </CardHeader>
               <CardContent>
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Daily forecast preview"
-                    className="h-64 w-full rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="flex h-64 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
-                    Upload an image to see the preview here.
-                  </div>
-                )}
+                {previewUrl ? <img src={previewUrl} alt="Trade screenshot preview" className="h-72 w-full rounded-xl object-cover" /> : <div className="flex h-72 items-center justify-center rounded-xl border border-dashed px-6 text-center text-sm text-muted-foreground">Upload a TradingView screenshot to prepare it for AI and storage.</div>}
               </CardContent>
             </Card>
           </Reveal>
@@ -606,80 +438,17 @@ const DailyForecastAdmin = () => {
         <Reveal delayMs={180}>
           <Card className="mt-8">
             <CardHeader>
-              <CardTitle>Live forecast (website)</CardTitle>
-              <CardDescription>
-                This is what visitors will see after you save forecasts.
-              </CardDescription>
+              <CardTitle>Published forecasts</CardTitle>
+              <CardDescription>These records are shared with every visitor and no longer depend on your browser.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {store.forecasts.length ? (
-                store.forecasts.map((forecast) => {
-                  const market = store.markets.find((m) => m.id === forecast.marketId);
-                  return (
-                    <div key={forecast.id} className="grid gap-6 rounded-xl border p-4 lg:grid-cols-[1.1fr_0.9fr]">
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-xs uppercase text-muted-foreground">Market</p>
-                          <p className="text-sm font-semibold">{market?.name ?? "Unknown market"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase text-muted-foreground">Pair</p>
-                          <p className="text-sm font-semibold">{forecast.pair}</p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="secondary" onClick={() => handleEditForecast(forecast)}>
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteForecast(forecast.id)}>
-                            Remove
-                          </Button>
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                          <span>Date: {forecast.date || "N/A"}</span>
-                          <span>Session: {forecast.session || "N/A"}</span>
-                          <span>Time: {forecast.time || "N/A"}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">Structure</p>
-                          <p className="text-sm text-muted-foreground">{forecast.structure}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">POI</p>
-                          <p className="text-sm text-muted-foreground">{forecast.poi}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">Additional notes</p>
-                          <p className="text-sm text-muted-foreground">{forecast.notes}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">Result</p>
-                          <p className="text-sm text-muted-foreground">{forecast.result || "Pending"}</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Saved {new Date(forecast.savedAt).toLocaleString()}
-                        </p>
-                      </div>
-                      <div>
-                        {forecast.imageDataUrl ? (
-                          <img
-                            src={forecast.imageDataUrl}
-                            alt="Saved daily forecast"
-                            className="h-64 w-full rounded-xl object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-64 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
-                            No image saved yet.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="flex h-48 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
-                  Save a forecast to show it here.
-                </div>
-              )}
+            <CardContent className="space-y-3">
+              {forecasts.length ? forecasts.map((forecast) => {
+                const instrument = instruments.find((item) => item.id === forecast.instrument_id);
+                return <div key={forecast.id} className="flex flex-col justify-between gap-3 rounded-lg border p-4 sm:flex-row sm:items-center">
+                  <div><p className="font-semibold">{instrument?.market ?? "Unknown"} — {instrument?.symbol ?? "Unknown"}</p><p className="text-sm text-muted-foreground">{forecast.direction.toUpperCase()} · {forecast.status.toUpperCase()} · {forecast.trade_date}</p></div>
+                  <div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => handleEdit(forecast)}>Edit</Button><Button size="sm" variant="destructive" onClick={() => void handleDelete(forecast)}>Delete</Button></div>
+                </div>;
+              }) : <p className="text-sm text-muted-foreground">No forecasts have been published yet.</p>}
             </CardContent>
           </Card>
         </Reveal>
