@@ -72,8 +72,13 @@ Deno.serve(async (request) => {
   }
 
   const instructions = [
-    "Read this TradingView trade screenshot.",
-    "Extract only values clearly visible in the image; never invent a price, direction, symbol, or result.",
+    "Analyse this TradingView trade screenshot as an ICT (Inner Circle Trader) chart reader.",
+    "First read all numerical labels from the position tool, price scale, and order labels before analysing the chart.",
+    "For a short / sell position tool: execution is the entry line, stop loss is the upper risk boundary or stop label, and take profit is the lower target boundary or target label.",
+    "For a long / buy position tool: execution is the entry line, stop loss is the lower risk boundary or stop label, and take profit is the upper target boundary or target label.",
+    "Return stopLoss whenever its number is visibly readable. Use null only when no stop-loss number can be read clearly; never invent a price.",
+    "Identify only ICT concepts visible in the screenshot: buy-side or sell-side liquidity, liquidity sweep, displacement, market-structure shift, fair value gap, order block, premium/discount, and likely target liquidity.",
+    "Do not create a trade recommendation, guarantee an outcome, or claim an ICT concept is present when it cannot be seen.",
     "Return only valid JSON with:",
     "{",
     '  "market": "Forex | Indices | Commodities | Crypto | null",',
@@ -84,7 +89,7 @@ Deno.serve(async (request) => {
     '  "takeProfit1": number or null,',
     '  "takeProfit2": number or null,',
     '  "status": "active | win | loss",',
-    '  "notes": "short factual description of what was visible",',
+    '  "notes": "2-4 factual sentences: timeframe, visible setup, visible ICT concepts, and target/risk context. State uncertainty where needed.",',
     '  "confidence": "high | medium | low"',
     "}",
     "Use win or loss only if the screenshot explicitly proves the completed outcome. Otherwise use active.",
