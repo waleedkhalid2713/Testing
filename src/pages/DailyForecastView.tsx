@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHero } from "@/components/site/PageHero";
 import heroImage from "@/assets/module-forecast-daily.jpg";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -25,11 +26,13 @@ const numberFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 6
 const DailyForecastView = () => {
   const [instruments, setInstruments] = useState<Instrument[]>([]);
   const [forecasts, setForecasts] = useState<Forecast[]>([]);
-  const [market, setMarket] = useState("");
+  const [marketType, setMarketType] = useState("");
+  const [subMarket, setSubMarket] = useState("");
   const [instrumentId, setInstrumentId] = useState("");
   const [status, setStatus] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedScreenshot, setSelectedScreenshot] = useState<ForecastWithInstrument | null>(null);
   const [error, setError] = useState("");
   const { isAdmin } = useAdmin();
 
@@ -53,14 +56,26 @@ const DailyForecastView = () => {
     void loadForecasts();
   }, []);
 
-  const supportedMarkets = useMemo(
-    () => [...new Set(instruments.map((instrument) => instrument.market))],
+  const marketTypes = useMemo(
+    () => [...new Set(instruments.map((instrument) => instrument.market_type))],
     [instruments],
   );
 
+  const subMarkets = useMemo(
+    () => [...new Set(
+      instruments
+        .filter((instrument) => !marketType || instrument.market_type === marketType)
+        .map((instrument) => instrument.sub_market),
+    )],
+    [instruments, marketType],
+  );
+
   const availableInstruments = useMemo(
-    () => instruments.filter((instrument) => !market || instrument.market === market),
-    [instruments, market],
+    () => instruments.filter((instrument) =>
+      (!marketType || instrument.market_type === marketType) &&
+      (!subMarket || instrument.sub_market === subMarket),
+    ),
+    [instruments, marketType, subMarket],
   );
 
   const enrichedForecasts = useMemo<ForecastWithInstrument[]>(
@@ -76,14 +91,15 @@ const DailyForecastView = () => {
   const filtered = useMemo(
     () =>
       enrichedForecasts.filter((forecast) => {
-        if (market && forecast.instrument?.market !== market) return false;
+        if (marketType && forecast.instrument?.market_type !== marketType) return false;
+        if (subMarket && forecast.instrument?.sub_market !== subMarket) return false;
         if (instrumentId && forecast.instrument_id !== instrumentId) return false;
         if (status && forecast.status !== status) return false;
         if (startDate && forecast.trade_date < startDate) return false;
         if (endDate && forecast.trade_date > endDate) return false;
         return true;
       }),
-    [enrichedForecasts, endDate, instrumentId, market, startDate, status],
+    [enrichedForecasts, endDate, instrumentId, marketType, startDate, status, subMarket],
   );
 
   const analysis = useMemo(() => {
@@ -103,17 +119,15 @@ const DailyForecastView = () => {
     });
 
     const instrumentsSummary = [...byInstrument.values()]
-      .map((item) => ({
-        ...item,
-        winRate: item.completed ? Math.round((item.wins / item.completed) * 100) : null,
-      }))
+      .map((item) => ({ ...item, winRate: item.completed ? Math.round((item.wins / item.completed) * 100) : null }))
       .sort((first, second) => second.total - first.total);
 
     return { active, completed, instrumentsSummary, winRate, wins };
   }, [filtered]);
 
   const resetFilters = () => {
-    setMarket("");
+    setMarketType("");
+    setSubMarket("");
     setInstrumentId("");
     setStatus("");
     setStartDate("");
@@ -134,22 +148,38 @@ const DailyForecastView = () => {
           <CardHeader>
             <CardTitle>Forecast dashboard</CardTitle>
             <CardDescription>
-              Filter public forecasts by market, instrument, outcome, or a trade-date range.
+              Narrow forecasts from market type through sub-market and instrument, then filter by outcome or date.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="filter-market">Market</label>
-              <select id="filter-market" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={market} onChange={(event) => { setMarket(event.target.value); setInstrumentId(""); }}>
-                <option value="">All markets</option>
-                {supportedMarkets.map((item) => <option key={item} value={item}>{item}</option>)}
+              <label className="text-sm font-medium" htmlFor="filter-market-type">Market type</label>
+              <select id="filter-market-type" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={marketType} onChange={(event) => { setMarketType(event.target.value); setSubMarket(""); setInstrumentId(""); }}>
+                <option value="">All types</option>
+                {marketTypes.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="filter-sub-market">Sub-market</label>
+              <select id="filter-sub-market" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={subMarket} onChange={(event) => { setSubMarket(event.target.value); setInstrumentId(""); }}>
+                <option value="">All sub-markets</option>
+                {subMarkets.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="filter-instrument">Instrument</label>
               <select id="filter-instrument" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={instrumentId} onChange={(event) => setInstrumentId(event.target.value)}>
                 <option value="">All instruments</option>
-                {availableInstruments.map((instrument) => <option key={instrument.id} value={instrument.id}>{instrument.symbol}</option>)}
+                {availableInstruments.map((instrument) => <option key={instrument.id} value={instrument.id}>{instrument.symbol} — {instrument.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="filter-status">Result</label>
+              <select id="filter-status" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value)}>
+                <option value="">All results</option>
+                <option value="active">Active</option>
+                <option value="win">Win</option>
+                <option value="loss">Loss</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -203,8 +233,9 @@ const DailyForecastView = () => {
                 <CardContent className="space-y-5 pt-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs uppercase text-muted-foreground">{forecast.instrument?.market ?? "Market"}</p>
+                      <p className="text-xs uppercase text-muted-foreground">{forecast.instrument ? `${forecast.instrument.market_type} · ${forecast.instrument.sub_market}` : "Market"}</p>
                       <h2 className="text-xl font-semibold">{forecast.instrument?.symbol ?? "Unknown instrument"}</h2>
+                      {forecast.instrument?.name ? <p className="text-sm text-muted-foreground">{forecast.instrument.name}</p> : null}
                     </div>
                     <Badge variant={resultVariant(forecast.status)}>{forecast.status.toUpperCase()}</Badge>
                   </div>
@@ -220,7 +251,12 @@ const DailyForecastView = () => {
                   <p className="text-sm text-muted-foreground">Published for {new Date(forecast.trade_date + "T00:00:00").toLocaleDateString()}.</p>
                   {forecast.notes ? <p className="text-sm text-muted-foreground">{forecast.notes}</p> : null}
                 </CardContent>
-                <div className="p-6 pt-0 lg:pt-6"><img src={forecast.imageUrl} alt={`${forecast.instrument?.symbol ?? "Trade"} TradingView setup`} className="h-72 w-full rounded-xl object-cover" loading="lazy" /></div>
+                <div className="p-6 pt-0 lg:pt-6">
+                  <button type="button" className="block w-full overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={() => setSelectedScreenshot(forecast)} aria-label={`Open ${forecast.instrument?.symbol ?? "trade"} screenshot`}>
+                    <img src={forecast.imageUrl} alt={`${forecast.instrument?.symbol ?? "Trade"} TradingView setup`} className="h-72 w-full object-cover transition-transform hover:scale-[1.02]" loading="lazy" />
+                  </button>
+                  <p className="mt-2 text-center text-xs text-muted-foreground">Click the screenshot to enlarge it.</p>
+                </div>
               </div>
             </Card>
           )) : (
@@ -228,6 +264,18 @@ const DailyForecastView = () => {
           )}
         </div>
       </div>
+
+      <Dialog open={Boolean(selectedScreenshot)} onOpenChange={(open) => { if (!open) setSelectedScreenshot(null); }}>
+        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedScreenshot?.instrument?.symbol ?? "Trade"} setup screenshot</DialogTitle>
+            <DialogDescription>
+              {selectedScreenshot?.instrument ? `${selectedScreenshot.instrument.market_type} · ${selectedScreenshot.instrument.sub_market} · ${selectedScreenshot.instrument.name}` : "Published forecast image"}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedScreenshot ? <img src={selectedScreenshot.imageUrl} alt={`${selectedScreenshot.instrument?.symbol ?? "Trade"} TradingView setup`} className="max-h-[70vh] w-full rounded-lg object-contain" /> : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
