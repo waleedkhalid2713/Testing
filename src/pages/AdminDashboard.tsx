@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -202,6 +203,18 @@ const AdminDashboard = () => {
       />
 
       <div className="container py-12 space-y-6">
+        <Card className="border-primary/40">
+          <CardHeader>
+            <CardTitle>Daily Forecast Management</CardTitle>
+            <CardDescription>Upload a TradingView image, let AI fill the trade values, and publish the forecast.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="rounded-full">
+              <Link to="/daily-forecast">Open Daily Forecast Admin</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Activity filters</CardTitle>
