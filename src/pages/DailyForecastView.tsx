@@ -14,6 +14,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type Instrument = Tables<"trading_instruments">;
 type Forecast = Tables<"trading_forecasts">;
 type ForecastWithInstrument = Forecast & { instrument: Instrument | undefined; imageUrl: string; resultImageUrl: string | null };
+type ForecastAccess = "loading" | "sign-in" | "needs-acceptance" | "granted";
 
 const resultVariant = (status: string) => {
   if (status === "win") return "default";
@@ -34,28 +35,86 @@ const DailyForecastView = () => {
   const [endDate, setEndDate] = useState("");
   const [selectedScreenshot, setSelectedScreenshot] = useState<ForecastWithInstrument | null>(null);
   const [selectedImageType, setSelectedImageType] = useState<"setup" | "result">("setup");
+  const [forecastAccess, setForecastAccess] = useState<ForecastAccess>("loading");
+  const [hasAcceptedDisclaimer, setHasAcceptedDisclaimer] = useState(false);
+  const [isAcceptingDisclaimer, setIsAcceptingDisclaimer] = useState(false);
   const [error, setError] = useState("");
   const { isAdmin } = useAdmin();
 
-  useEffect(() => {
-    const loadForecasts = async () => {
-      const [{ data: instrumentRows, error: instrumentError }, { data: forecastRows, error: forecastError }] =
-        await Promise.all([
-          supabase.from("trading_instruments").select("*").eq("is_active", true).order("display_order"),
-          supabase.from("trading_forecasts").select("*").order("trade_date", { ascending: false }),
-        ]);
+  const loadForecasts = async () => {
+    const [{ data: instrumentRows, error: instrumentError }, { data: forecastRows, error: forecastError }] =
+      await Promise.all([
+        supabase.from("trading_instruments").select("*").eq("is_active", true).order("display_order"),
+        supabase.from("trading_forecasts").select("*").order("trade_date", { ascending: false }),
+      ]);
 
-      if (instrumentError || forecastError) {
-        setError("Forecasts are not available yet. Please try again later.");
+    if (instrumentError || forecastError) {
+      setError("Forecasts are not available yet. Please try again later.");
+      return;
+    }
+
+    setInstruments(instrumentRows ?? []);
+    setForecasts(forecastRows ?? []);
+  };
+
+  useEffect(() => {
+    const checkForecastAccess = async () => {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) {
+        setError("Unable to check your forecast access. Please sign in again.");
+        setForecastAccess("sign-in");
         return;
       }
 
-      setInstruments(instrumentRows ?? []);
-      setForecasts(forecastRows ?? []);
+      if (!user) {
+        setForecastAccess("sign-in");
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("forecast_disclaimer_accepted_at")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        setError("Unable to load your disclaimer status. Please try again.");
+        setForecastAccess("needs-acceptance");
+        return;
+      }
+
+      if (!profile?.forecast_disclaimer_accepted_at) {
+        setForecastAccess("needs-acceptance");
+        return;
+      }
+
+      setForecastAccess("granted");
+      await loadForecasts();
     };
 
-    void loadForecasts();
+    void checkForecastAccess();
   }, []);
+
+  const acceptDisclaimer = async () => {
+    if (!hasAcceptedDisclaimer) {
+      return;
+    }
+
+    setIsAcceptingDisclaimer(true);
+    setError("");
+
+    const { error: acceptanceError } = await supabase.rpc("accept_forecast_disclaimer");
+    if (acceptanceError) {
+      setError(acceptanceError.message);
+      setIsAcceptingDisclaimer(false);
+      return;
+    }
+
+    setForecastAccess("granted");
+    setIsAcceptingDisclaimer(false);
+    await loadForecasts();
+  };
 
   const marketTypes = useMemo(
     () => [...new Set(instruments.map((instrument) => instrument.market_type))],
@@ -147,7 +206,8 @@ const DailyForecastView = () => {
         imageAlt="Forecast dashboard with candlestick charts"
       />
 
-      <div className="container py-12">
+      {forecastAccess === "granted" ? (
+        <div className="container py-12">
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Forecast dashboard</CardTitle>
@@ -289,8 +349,45 @@ const DailyForecastView = () => {
           {selectedScreenshot ? <img src={selectedImageType === "result" ? selectedScreenshot.resultImageUrl ?? selectedScreenshot.imageUrl : selectedScreenshot.imageUrl} alt={`${selectedScreenshot.instrument?.symbol ?? "Trade"} ${selectedImageType === "result" ? "result screenshot" : "TradingView setup"}`} className="max-h-[70vh] w-full rounded-lg object-contain" /> : null}
         </DialogContent>
       </Dialog>
+        </div>
+      ) : (
+        <div className="container py-12">
+          <Card className="mx-auto max-w-2xl">
+            <CardHeader>
+              <CardTitle>Forecast disclaimer</CardTitle>
+              <CardDescription>Acceptance is required before the forecast section is shown.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {forecastAccess === "loading" ? <p className="text-sm text-muted-foreground">Checking your forecast access…</p> : null}
+              {forecastAccess === "sign-in" ? (
+                <>
+                  <p className="text-sm text-muted-foreground">Please sign in to read and accept the forecast disclaimer.</p>
+                  <Button asChild className="rounded-full"><Link to="/auth">Sign in to continue</Link></Button>
+                </>
+              ) : null}
+              {forecastAccess === "needs-acceptance" ? (
+                <>
+                  <p className="text-sm leading-6">
+                    All forecasts are provided solely for educational purposes and do not constitute financial or investment advice. You accept full responsibility for your own trading decisions.
+                  </p>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 text-sm leading-6">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4"
+                      checked={hasAcceptedDisclaimer}
+                      onChange={(event) => setHasAcceptedDisclaimer(event.target.checked)}
+                    />
+                    <span>I understand and accept this forecast disclaimer.</span>
+                  </label>
+                  <Button type="button" className="rounded-full" disabled={!hasAcceptedDisclaimer || isAcceptingDisclaimer} onClick={() => void acceptDisclaimer()}>
+                    {isAcceptingDisclaimer ? "Saving acceptance…" : "Accept and view forecasts"}
+                  </Button>
+                </>
+              ) : null}
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
-};
-
-export default DailyForecastView;
