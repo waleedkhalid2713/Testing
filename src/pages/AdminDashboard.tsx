@@ -1,101 +1,52 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { PageHero } from "@/components/site/PageHero";
 import heroImage from "@/assets/module-forecast-daily.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
-const USERS_KEY = "epic-trader-users";
-const VISITS_KEY = "epic-trader-visits";
-const CONTENT_KEY = "epic-trader-content-metrics";
-const FORECAST_KEY = "epic-trader-forecast-store";
-
-type UserRecord = {
-  name: string;
-  email: string;
-  password: string;
-  verified: string;
-  country?: string;
-  age?: string;
-  profession?: string;
-};
-
-type VisitRecord = {
+type Profile = {
   id: string;
-  timestamp: string;
-  country?: string;
-  age?: string;
-  profession?: string;
-  page?: string;
+  email: string;
+  incorporated_at: string;
+  region: string;
 };
 
-type ContentMetric = {
-  key: string;
-  label: string;
-  clicks: number;
-};
-
-type ForecastStore = {
-  markets: Array<{ id: string; name: string; pairs: string[] }>;
-  forecasts: Array<{ id: string; result?: string }>;
-};
+const formatDate = (value: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 
 const AdminDashboard = () => {
-  const storedUsers = window.localStorage.getItem(USERS_KEY);
-  const users = storedUsers ? (JSON.parse(storedUsers) as UserRecord[]) : [];
-  const storedVisits = window.localStorage.getItem(VISITS_KEY);
-  const visits = storedVisits ? (JSON.parse(storedVisits) as VisitRecord[]) : [];
-  const storedContent = window.localStorage.getItem(CONTENT_KEY);
-  const content = storedContent ? (JSON.parse(storedContent) as ContentMetric[]) : [];
-  const storedForecasts = window.localStorage.getItem(FORECAST_KEY);
-  const forecastStore = storedForecasts ? (JSON.parse(storedForecasts) as ForecastStore) : { markets: [], forecasts: [] };
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const [filterCountry, setFilterCountry] = useState("");
-  const [filterAge, setFilterAge] = useState("");
-  const [filterProfession, setFilterProfession] = useState("");
+  useEffect(() => {
+    const loadProfiles = async () => {
+      const { data, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, email, incorporated_at, region")
+        .order("incorporated_at", { ascending: false });
 
-  const filteredUsers = useMemo(
-    () =>
-      users.filter((user) => {
-        if (filterCountry && user.country !== filterCountry) {
-          return false;
-        }
-        if (filterAge && user.age !== filterAge) {
-          return false;
-        }
-        if (filterProfession && user.profession !== filterProfession) {
-          return false;
-        }
-        return true;
-      }),
-    [users, filterCountry, filterAge, filterProfession],
-  );
+      if (profilesError) {
+        setError(profilesError.message);
+      } else {
+        setProfiles(data);
+      }
 
-  const filteredVisits = useMemo(
-    () =>
-      visits.filter((visit) => {
-        if (filterCountry && visit.country !== filterCountry) {
-          return false;
-        }
-        if (filterAge && visit.age !== filterAge) {
-          return false;
-        }
-        if (filterProfession && visit.profession !== filterProfession) {
-          return false;
-        }
-        return true;
-      }),
-    [visits, filterCountry, filterAge, filterProfession],
-  );
+      setLoading(false);
+    };
 
-  const totalForecasts = forecastStore.forecasts.length;
-  const completedResults = forecastStore.forecasts.filter((forecast) => forecast.result?.trim()).length;
+    void loadProfiles();
+  }, []);
 
   return (
     <div>
       <PageHero
         title="Admin Dashboard"
-        subtitle="Monitor users, visits, forecasts, and content performance."
+        subtitle="View verified website accounts."
         imageSrc={heroImage}
         imageAlt="Forecast dashboard with candlestick charts"
       />
@@ -103,107 +54,40 @@ const AdminDashboard = () => {
       <div className="container py-12 space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Global filters</CardTitle>
-            <CardDescription>Filter analytics by user profile attributes.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
-            <Input placeholder="Country" value={filterCountry} onChange={(e) => setFilterCountry(e.target.value)} />
-            <Input placeholder="Age" value={filterAge} onChange={(e) => setFilterAge(e.target.value)} />
-            <Input
-              placeholder="Profession"
-              value={filterProfession}
-              onChange={(e) => setFilterProfession(e.target.value)}
-            />
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total users</CardTitle>
-              <CardDescription>Verified accounts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">{filteredUsers.length}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Total visits</CardTitle>
-              <CardDescription>Filtered by attributes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">{filteredVisits.length}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Forecast results</CardTitle>
-              <CardDescription>Completed vs total</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold">
-                {completedResults}/{totalForecasts}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Users table</CardTitle>
-            <CardDescription>Admin-only visibility of user accounts.</CardDescription>
+            <CardTitle>Registered users</CardTitle>
+            <CardDescription>Total verified accounts: {profiles.length}</CardDescription>
           </CardHeader>
           <CardContent className="overflow-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="py-2">Name</th>
-                  <th>Email</th>
-                  <th>Country</th>
-                  <th>Age</th>
-                  <th>Profession</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.length ? (
-                  filteredUsers.map((user) => (
-                    <tr key={user.email} className="border-b">
-                      <td className="py-2">{user.name}</td>
-                      <td>{user.email}</td>
-                      <td>{user.country || "-"}</td>
-                      <td>{user.age || "-"}</td>
-                      <td>{user.profession || "-"}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="py-4 text-muted-foreground">
-                      No users match the current filters.
-                    </td>
+            {loading ? <p className="text-sm text-muted-foreground">Loading users…</p> : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {!loading && !error ? (
+              <table className="w-full min-w-[560px] text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="py-3 pr-4">Email of User</th>
+                    <th className="py-3 pr-4">Date of Incorporation</th>
+                    <th className="py-3">Region</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Content performance</CardTitle>
-            <CardDescription>Which modules attract the most interest.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {content.length ? (
-              content.map((item) => (
-                <div key={item.key} className="flex items-center justify-between rounded-md border px-3 py-2">
-                  <p className="text-sm font-medium">{item.label}</p>
-                  <p className="text-sm text-muted-foreground">{item.clicks} clicks</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No content engagement recorded yet.</p>
-            )}
+                </thead>
+                <tbody>
+                  {profiles.length ? (
+                    profiles.map((profile) => (
+                      <tr key={profile.id} className="border-b">
+                        <td className="py-3 pr-4">{profile.email}</td>
+                        <td className="py-3 pr-4">{formatDate(profile.incorporated_at)}</td>
+                        <td className="py-3">{profile.region}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-5 text-muted-foreground">
+                        No verified users yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            ) : null}
           </CardContent>
         </Card>
       </div>
