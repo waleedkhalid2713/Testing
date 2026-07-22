@@ -124,12 +124,12 @@ const Index = () => {
                   const nextMetrics = metrics.map((m) => (m.key === k ? { ...m, clicks: m.clicks + 1 } : m));
                   window.localStorage.setItem("epic-trader-content-metrics", JSON.stringify(nextMetrics));
 
-                  if (!isSignedIn) {
-                    navigate("/sign-up");
-                    return;
-                  }
                   if (k === "forecast") {
                     navigate("/forecast");
+                    return;
+                  }
+                  if (!isSignedIn) {
+                    navigate("/sign-up");
                     return;
                   }
                   setActive(k);
