@@ -14,7 +14,7 @@ export type Database = {
     Tables: {
       email_verification_codes: {
         Row: { attempts: number; code_hash: string; consumed_at: string | null; created_at: string; email: string; expires_at: string; id: string; purpose: string }
-        Insert: { attempts?: number; code_hash: string; consumed_at?: string | null; created_at?: string; email: string; expires_at: string; id?: string; purpose?: string }
+        Insert: { attempts?: number; code_hash: string; consumed_at?: string | null; created_at?: string; email: string; expires_at?: string; id?: string; purpose?: string }
         Update: { attempts?: number; code_hash?: string; consumed_at?: string | null; created_at?: string; email?: string; expires_at?: string; id?: string; purpose?: string }
         Relationships: []
       }
@@ -25,9 +25,9 @@ export type Database = {
         Relationships: []
       }
       trading_instruments: {
-        Row: { created_at: string; display_order: number; id: string; is_active: boolean; market: string; symbol: string }
-        Insert: { created_at?: string; display_order?: number; id?: string; is_active?: boolean; market: string; symbol: string }
-        Update: { created_at?: string; display_order?: number; id?: string; is_active?: boolean; market?: string; symbol?: string }
+        Row: { created_at: string; display_order: number; id: string; is_active: boolean; market: string; market_type: string; name: string; sub_market: string; symbol: string }
+        Insert: { created_at?: string; display_order?: number; id?: string; is_active?: boolean; market: string; market_type?: string; name?: string; sub_market?: string; symbol: string }
+        Update: { created_at?: string; display_order?: number; id?: string; is_active?: boolean; market?: string; market_type?: string; name?: string; sub_market?: string; symbol?: string }
         Relationships: []
       }
       trading_forecasts: {
@@ -83,7 +83,7 @@ export type TablesUpdate<
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends { Update: infer Update } ? Update : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends { Update: infer Update } ? Update : never
+    ? DatabaseWithoutInternals["Tables"][DefaultSchemaTableNameOrOptions] extends { Update: infer Update } ? Update : never
     : never
 
 export const Constants = { public: { Enums: {} } } as const
