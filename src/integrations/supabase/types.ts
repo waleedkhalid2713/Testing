@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          email: string
+          id: string
+          incorporated_at: string
+          region: string
+        }
+        Insert: {
+          email: string
+          id: string
+          incorporated_at?: string
+          region?: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          incorporated_at?: string
+          region?: string
+        }
+        Relationships: []
+      }
       email_verification_codes: {
         Row: {
           attempts: number
