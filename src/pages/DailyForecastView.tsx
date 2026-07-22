@@ -12,7 +12,12 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Instrument = Tables<"trading_instruments">;
 type Forecast = Tables<"trading_forecasts">;
-type ForecastWithInstrument = Forecast & { instrument: Instrument | undefined; imageUrl: string };
+type ForecastWithInstrument = Forecast & {
+  instrument: Instrument | undefined;
+  imageUrl: string;
+  resultImageUrl: string | null;
+  isHistorical: boolean;
+};
 
 const resultVariant = (status: string) => {
   if (status === "win") return "default";
@@ -69,6 +74,10 @@ const DailyForecastView = () => {
         ...forecast,
         instrument: instruments.find((instrument) => instrument.id === forecast.instrument_id),
         imageUrl: supabase.storage.from("forecast-images").getPublicUrl(forecast.image_path).data.publicUrl,
+        resultImageUrl: forecast.result_image_path
+          ? supabase.storage.from("forecast-images").getPublicUrl(forecast.result_image_path).data.publicUrl
+          : null,
+        isHistorical: forecast.trade_date < forecast.created_at.slice(0, 10),
       })),
     [forecasts, instruments],
   );
@@ -206,7 +215,10 @@ const DailyForecastView = () => {
                       <p className="text-xs uppercase text-muted-foreground">{forecast.instrument?.market ?? "Market"}</p>
                       <h2 className="text-xl font-semibold">{forecast.instrument?.symbol ?? "Unknown instrument"}</h2>
                     </div>
-                    <Badge variant={resultVariant(forecast.status)}>{forecast.status.toUpperCase()}</Badge>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {forecast.isHistorical ? <Badge variant="outline">HISTORICAL TRADE</Badge> : null}
+                      <Badge variant={resultVariant(forecast.status)}>{forecast.status.toUpperCase()}</Badge>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 rounded-lg border p-4 text-sm sm:grid-cols-4">
@@ -217,10 +229,25 @@ const DailyForecastView = () => {
                   </div>
 
                   {forecast.take_profit_2 ? <p className="text-sm"><span className="text-muted-foreground">Take profit 2: </span><span className="font-semibold">{numberFormat.format(forecast.take_profit_2)}</span></p> : null}
-                  <p className="text-sm text-muted-foreground">Published for {new Date(forecast.trade_date + "T00:00:00").toLocaleDateString()}.</p>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <p>Trade date: {new Date(forecast.trade_date + "T00:00:00").toLocaleDateString()}.</p>
+                    <p>{forecast.isHistorical ? "Added to archive" : "Published"}: {new Date(forecast.created_at).toLocaleDateString()}.</p>
+                    {forecast.result_confirmed_at ? <p>Result confirmed: {new Date(forecast.result_confirmed_at).toLocaleDateString()}.</p> : null}
+                  </div>
                   {forecast.notes ? <p className="text-sm text-muted-foreground">{forecast.notes}</p> : null}
                 </CardContent>
-                <div className="p-6 pt-0 lg:pt-6"><img src={forecast.imageUrl} alt={`${forecast.instrument?.symbol ?? "Trade"} TradingView setup`} className="h-72 w-full rounded-xl object-cover" loading="lazy" /></div>
+                <div className="grid gap-4 p-6 pt-0 lg:pt-6">
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Setup screenshot</p>
+                    <img src={forecast.imageUrl} alt={`${forecast.instrument?.symbol ?? "Trade"} TradingView setup`} className="h-64 w-full rounded-xl object-cover" loading="lazy" />
+                  </div>
+                  {forecast.resultImageUrl ? (
+                    <div>
+                      <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Result screenshot</p>
+                      <img src={forecast.resultImageUrl} alt={`${forecast.instrument?.symbol ?? "Trade"} result evidence`} className="h-64 w-full rounded-xl object-cover" loading="lazy" />
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </Card>
           )) : (
