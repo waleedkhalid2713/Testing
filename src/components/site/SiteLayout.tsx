@@ -5,10 +5,15 @@ import { IntroModal } from "@/components/site/IntroModal";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { MarqueeTicker } from "@/components/site/MarqueeTicker";
 
+const INTRO_DISMISSED_KEY = "epic-trader-intro-dismissed";
+
 export function SiteLayout() {
-  const [showIntro, setShowIntro] = React.useState(true);
+  const [showIntro, setShowIntro] = React.useState(
+    () => window.sessionStorage.getItem(INTRO_DISMISSED_KEY) !== "true",
+  );
 
   const handleCloseIntro = () => {
+    window.sessionStorage.setItem(INTRO_DISMISSED_KEY, "true");
     setShowIntro(false);
   };
 
