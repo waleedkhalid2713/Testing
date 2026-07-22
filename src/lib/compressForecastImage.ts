@@ -12,38 +12,41 @@ export async function compressForecastImage(file: File): Promise<File> {
   let height = Math.max(1, Math.round(source.height * scale));
   let quality = 0.78;
 
-  for (let attempt = 0; attempt < 7; attempt += 1) {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
+  try {
+    for (let attempt = 0; attempt < 7; attempt += 1) {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
 
-    const context = canvas.getContext("2d");
-    if (!context) {
-      throw new Error("Your browser cannot prepare this image.");
-    }
-
-    context.drawImage(source, 0, 0, width, height);
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", quality),
-    );
-
-    if (!blob) {
-      throw new Error("Unable to compress this image.");
-    }
-
-    if (blob.size <= MAX_IMAGE_BYTES || attempt === 6) {
-      if (blob.size > MAX_IMAGE_BYTES) {
-        throw new Error("This image is still too large after compression. Please use a smaller screenshot.");
+      const context = canvas.getContext("2d");
+      if (!context) {
+        throw new Error("Your browser cannot prepare this image.");
       }
 
-      return new File([blob], `${file.name.replace(/\\.[^/.]+$/, "") || "forecast"}.jpg`, {
-        type: "image/jpeg",
-      });
-    }
+      context.drawImage(source, 0, 0, width, height);
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", quality),
+      );
 
-    quality = Math.max(0.4, quality - 0.1);
-    width = Math.round(width * 0.85);
-    height = Math.round(height * 0.85);
+      if (!blob) {
+        throw new Error("Unable to compress this image.");
+      }
+
+      if (blob.size <= MAX_IMAGE_BYTES || attempt === 6) {
+        if (blob.size > MAX_IMAGE_BYTES) {
+          throw new Error("This image is still too large after compression. Please use a smaller screenshot.");
+        }
+
+        const name = file.name.replace(/\.[^/.]+$/, "") || "forecast";
+        return new File([blob], name + ".jpg", { type: "image/jpeg" });
+      }
+
+      quality = Math.max(0.4, quality - 0.1);
+      width = Math.round(width * 0.85);
+      height = Math.round(height * 0.85);
+    }
+  } finally {
+    source.close();
   }
 
   throw new Error("Unable to compress this image.");
