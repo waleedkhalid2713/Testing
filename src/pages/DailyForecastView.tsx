@@ -13,7 +13,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Instrument = Tables<"trading_instruments">;
 type Forecast = Tables<"trading_forecasts">;
-type ForecastWithInstrument = Forecast & { instrument: Instrument | undefined; imageUrl: string };
+type ForecastWithInstrument = Forecast & { instrument: Instrument | undefined; imageUrl: string; resultImageUrl: string | null };
 
 const resultVariant = (status: string) => {
   if (status === "win") return "default";
@@ -33,6 +33,7 @@ const DailyForecastView = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedScreenshot, setSelectedScreenshot] = useState<ForecastWithInstrument | null>(null);
+  const [selectedImageType, setSelectedImageType] = useState<"setup" | "result">("setup");
   const [error, setError] = useState("");
   const { isAdmin } = useAdmin();
 
@@ -84,6 +85,9 @@ const DailyForecastView = () => {
         ...forecast,
         instrument: instruments.find((instrument) => instrument.id === forecast.instrument_id),
         imageUrl: supabase.storage.from("forecast-images").getPublicUrl(forecast.image_path).data.publicUrl,
+        resultImageUrl: forecast.result_image_path
+          ? supabase.storage.from("forecast-images").getPublicUrl(forecast.result_image_path).data.publicUrl
+          : null,
       })),
     [forecasts, instruments],
   );
@@ -252,10 +256,19 @@ const DailyForecastView = () => {
                   {forecast.notes ? <p className="text-sm text-muted-foreground">{forecast.notes}</p> : null}
                 </CardContent>
                 <div className="p-6 pt-0 lg:pt-6">
-                  <button type="button" className="block w-full overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={() => setSelectedScreenshot(forecast)} aria-label={`Open ${forecast.instrument?.symbol ?? "trade"} screenshot`}>
+                  <button type="button" className="block w-full overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={() => { setSelectedImageType("setup"); setSelectedScreenshot(forecast); }} aria-label={`Open ${forecast.instrument?.symbol ?? "trade"} setup screenshot`}>
                     <img src={forecast.imageUrl} alt={`${forecast.instrument?.symbol ?? "Trade"} TradingView setup`} className="h-72 w-full object-cover transition-transform hover:scale-[1.02]" loading="lazy" />
                   </button>
                   <p className="mt-2 text-center text-xs text-muted-foreground">Click the screenshot to enlarge it.</p>
+                  {forecast.resultImageUrl ? (
+                    <div className="mt-5 border-t pt-5">
+                      <p className="mb-2 text-sm font-medium">Result evidence</p>
+                      <button type="button" className="block w-full overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={() => { setSelectedImageType("result"); setSelectedScreenshot(forecast); }} aria-label={`Open ${forecast.instrument?.symbol ?? "trade"} result screenshot`}>
+                        <img src={forecast.resultImageUrl} alt={`${forecast.instrument?.symbol ?? "Trade"} result screenshot`} className="h-48 w-full object-cover transition-transform hover:scale-[1.02]" loading="lazy" />
+                      </button>
+                      <p className="mt-2 text-center text-xs text-muted-foreground">Admin-provided result screenshot. Click to enlarge it.</p>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </Card>
@@ -268,12 +281,12 @@ const DailyForecastView = () => {
       <Dialog open={Boolean(selectedScreenshot)} onOpenChange={(open) => { if (!open) setSelectedScreenshot(null); }}>
         <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedScreenshot?.instrument?.symbol ?? "Trade"} setup screenshot</DialogTitle>
+            <DialogTitle>{selectedScreenshot?.instrument?.symbol ?? "Trade"} {selectedImageType === "result" ? "result screenshot" : "setup screenshot"}</DialogTitle>
             <DialogDescription>
               {selectedScreenshot?.instrument ? `${selectedScreenshot.instrument.market_type} · ${selectedScreenshot.instrument.sub_market} · ${selectedScreenshot.instrument.name}` : "Published forecast image"}
             </DialogDescription>
           </DialogHeader>
-          {selectedScreenshot ? <img src={selectedScreenshot.imageUrl} alt={`${selectedScreenshot.instrument?.symbol ?? "Trade"} TradingView setup`} className="max-h-[70vh] w-full rounded-lg object-contain" /> : null}
+          {selectedScreenshot ? <img src={selectedImageType === "result" ? selectedScreenshot.resultImageUrl ?? selectedScreenshot.imageUrl : selectedScreenshot.imageUrl} alt={`${selectedScreenshot.instrument?.symbol ?? "Trade"} ${selectedImageType === "result" ? "result screenshot" : "TradingView setup"}`} className="max-h-[70vh] w-full rounded-lg object-contain" /> : null}
         </DialogContent>
       </Dialog>
     </div>
