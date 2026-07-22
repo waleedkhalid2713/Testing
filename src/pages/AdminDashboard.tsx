@@ -23,6 +23,7 @@ type Profile = {
   email: string;
   incorporated_at: string;
   region: string;
+  forecast_disclaimer_accepted_at: string | null;
 };
 
 type ActivityEvent = {
@@ -89,7 +90,7 @@ const AdminDashboard = () => {
       const [profilesResponse, activityResponse] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, email, incorporated_at, region")
+          .select("id, email, incorporated_at, region, forecast_disclaimer_accepted_at")
           .order("incorporated_at", { ascending: false }),
         supabase
           .from("user_activity_events")
@@ -172,11 +173,12 @@ const AdminDashboard = () => {
   const exportUsers = () => {
     downloadCsv(
       "epic-trader-users.csv",
-      ["Email of User", "Date of Incorporation", "Region"],
+      ["Email of User", "Date of Incorporation", "Region", "Forecast Disclaimer Accepted"],
       filteredProfiles.map((profile) => [
         profile.email,
         formatDate(profile.incorporated_at),
         profile.region,
+        profile.forecast_disclaimer_accepted_at ? formatDate(profile.forecast_disclaimer_accepted_at) : "Not accepted",
       ]),
     );
   };
@@ -348,7 +350,7 @@ const AdminDashboard = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Registered users</CardTitle>
-                <CardDescription>Email, signup date, and selected region.</CardDescription>
+                <CardDescription>Email, signup date, region, and forecast disclaimer acceptance.</CardDescription>
               </CardHeader>
               <CardContent className="overflow-auto">
                 <table className="w-full min-w-[560px] text-sm">
@@ -356,7 +358,8 @@ const AdminDashboard = () => {
                     <tr className="border-b text-left">
                       <th className="py-3 pr-4">Email of User</th>
                       <th className="py-3 pr-4">Date of Incorporation</th>
-                      <th className="py-3">Region</th>
+                      <th className="py-3 pr-4">Region</th>
+                      <th className="py-3">Forecast Disclaimer</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -365,12 +368,13 @@ const AdminDashboard = () => {
                         <tr key={profile.id} className="border-b">
                           <td className="py-3 pr-4">{profile.email}</td>
                           <td className="py-3 pr-4">{formatDate(profile.incorporated_at)}</td>
-                          <td className="py-3">{profile.region}</td>
+                          <td className="py-3 pr-4">{profile.region}</td>
+                          <td className="py-3">{profile.forecast_disclaimer_accepted_at ? `Accepted ${formatDate(profile.forecast_disclaimer_accepted_at)}` : "Not accepted"}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={3} className="py-5 text-muted-foreground">
+                        <td colSpan={4} className="py-5 text-muted-foreground">
                           No registered users yet.
                         </td>
                       </tr>
