@@ -93,7 +93,7 @@ export default function Auth() {
         return;
       }
 
-      if (session) navigate("/");
+      if (session && mode !== "reset") navigate("/");
     });
 
     supabase.auth.getSession().then(({ data }) => {
