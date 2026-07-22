@@ -62,6 +62,8 @@ const DailyForecastAdmin = () => {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [resultImageFile, setResultImageFile] = useState<File | null>(null);
+  const [resultPreviewUrl, setResultPreviewUrl] = useState<string | null>(null);
   const [editingForecast, setEditingForecast] = useState<Forecast | null>(null);
   const [extraction, setExtraction] = useState<Extraction | null>(null);
   const [isReadingImage, setIsReadingImage] = useState(false);
@@ -176,6 +178,28 @@ const DailyForecastAdmin = () => {
     }
   };
 
+  const handleResultImageChange = async (file: File | undefined) => {
+    setError("");
+    setMessage("");
+
+    if (!file) {
+      setResultImageFile(null);
+      setResultPreviewUrl(null);
+      return;
+    }
+
+    try {
+      const compressed = await compressForecastImage(file);
+      setResultImageFile(compressed);
+      setResultPreviewUrl(URL.createObjectURL(compressed));
+      setMessage(`Result screenshot prepared: ${Math.ceil(compressed.size / 1024)} KB.`);
+    } catch (imageError) {
+      setResultImageFile(null);
+      setResultPreviewUrl(null);
+      setError(imageError instanceof Error ? imageError.message : "Unable to prepare this result screenshot.");
+    }
+  };
+
   const handleReadImage = async () => {
     if (!imageFile) {
       setError("Upload a TradingView image before asking AI to read it.");
@@ -243,6 +267,8 @@ const DailyForecastAdmin = () => {
     setEditorSubMarket("");
     setImageFile(null);
     setPreviewUrl(null);
+    setResultImageFile(null);
+    setResultPreviewUrl(null);
     setExtraction(null);
     setEditingForecast(null);
   };
@@ -264,7 +290,9 @@ const DailyForecastAdmin = () => {
       notes: forecast.notes,
     });
     setPreviewUrl(supabase.storage.from("forecast-images").getPublicUrl(forecast.image_path).data.publicUrl);
+    setResultPreviewUrl(forecast.result_image_path ? supabase.storage.from("forecast-images").getPublicUrl(forecast.result_image_path).data.publicUrl : null);
     setImageFile(null);
+    setResultImageFile(null);
     setExtraction((forecast.ai_extraction as Extraction | null) ?? null);
     setError("");
     setMessage("You are editing a published forecast. Upload a new image only if you want to replace it.");
@@ -283,7 +311,8 @@ const DailyForecastAdmin = () => {
       return;
     }
 
-    const { error: storageError } = await supabase.storage.from("forecast-images").remove([forecast.image_path]);
+    const imagePaths = [forecast.image_path, forecast.result_image_path].filter((path): path is string => Boolean(path));
+    const { error: storageError } = await supabase.storage.from("forecast-images").remove(imagePaths);
     if (storageError) {
       setError("Forecast was deleted, but its image could not be removed: " + storageError.message);
     }
@@ -324,16 +353,22 @@ const DailyForecastAdmin = () => {
     setIsSaving(true);
 
     let imagePath = editingForecast?.image_path ?? "";
+    let resultImagePath = editingForecast?.result_image_path ?? null;
     let replacementPath: string | null = null;
+    let replacementResultPath: string | null = null;
 
     try {
-      if (imageFile) {
+      let uploadUserId = "";
+      if (imageFile || resultImageFile) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           throw new Error("Your admin session has ended. Please sign in again.");
         }
+        uploadUserId = user.id;
+      }
 
-        replacementPath = `${user.id}/${crypto.randomUUID()}.jpg`;
+      if (imageFile) {
+        replacementPath = `${uploadUserId}/${crypto.randomUUID()}.jpg`;
         const { error: uploadError } = await supabase.storage.from("forecast-images").upload(replacementPath, imageFile, {
           cacheControl: "31536000",
           contentType: "image/jpeg",
@@ -347,6 +382,21 @@ const DailyForecastAdmin = () => {
         imagePath = replacementPath;
       }
 
+      if (resultImageFile) {
+        replacementResultPath = `${uploadUserId}/results/${crypto.randomUUID()}.jpg`;
+        const { error: uploadError } = await supabase.storage.from("forecast-images").upload(replacementResultPath, resultImageFile, {
+          cacheControl: "31536000",
+          contentType: "image/jpeg",
+          upsert: false,
+        });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        resultImagePath = replacementResultPath;
+      }
+
       const payload = {
         instrument_id: form.instrumentId,
         direction: form.direction,
@@ -358,6 +408,7 @@ const DailyForecastAdmin = () => {
         trade_date: form.tradeDate,
         notes: form.notes.trim(),
         image_path: imagePath,
+        result_image_path: resultImagePath,
         ai_extraction: extraction,
         updated_at: new Date().toISOString(),
       };
@@ -370,16 +421,21 @@ const DailyForecastAdmin = () => {
         throw saveError;
       }
 
-      if (replacementPath && editingForecast?.image_path) {
-        await supabase.storage.from("forecast-images").remove([editingForecast.image_path]);
+      const replacedPaths = [
+        replacementPath && editingForecast?.image_path ? editingForecast.image_path : null,
+        replacementResultPath && editingForecast?.result_image_path ? editingForecast.result_image_path : null,
+      ].filter((path): path is string => Boolean(path));
+      if (replacedPaths.length) {
+        await supabase.storage.from("forecast-images").remove(replacedPaths);
       }
 
       setMessage(editingForecast ? "Forecast updated for every website visitor." : "Forecast published for every website visitor.");
       resetForm();
       await loadData();
     } catch (saveError) {
-      if (replacementPath) {
-        await supabase.storage.from("forecast-images").remove([replacementPath]);
+      const failedUploadPaths = [replacementPath, replacementResultPath].filter((path): path is string => Boolean(path));
+      if (failedUploadPaths.length) {
+        await supabase.storage.from("forecast-images").remove(failedUploadPaths);
       }
       setError(saveError instanceof Error ? saveError.message : "Unable to publish this forecast.");
     } finally {
@@ -485,6 +541,17 @@ const DailyForecastAdmin = () => {
                   </div>
 
                   <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="result-image">Result screenshot (optional)</label>
+                    <Input
+                      id="result-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => void handleResultImageChange(event.target.files?.[0])}
+                    />
+                    <p className="text-xs text-muted-foreground">Upload the completed-trade screenshot after selecting Win or Loss. It is compressed before it is saved.</p>
+                  </div>
+
+                  <div className="space-y-2">
                     <label className="text-sm font-medium" htmlFor="notes">Trade notes</label>
                     <Textarea id="notes" rows={4} maxLength={2000} value={form.notes} onChange={(event) => setField("notes", event.target.value)} placeholder="Optional context visible in the setup." />
                   </div>
@@ -509,8 +576,9 @@ const DailyForecastAdmin = () => {
                 <CardTitle>Compressed preview</CardTitle>
                 <CardDescription>Only this compressed image is stored in Supabase.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-5">
                 {previewUrl ? <img src={previewUrl} alt="Trade screenshot preview" className="h-72 w-full rounded-xl object-cover" /> : <div className="flex h-72 items-center justify-center rounded-xl border border-dashed px-6 text-center text-sm text-muted-foreground">Upload a TradingView screenshot to prepare it for AI and storage.</div>}
+                {resultPreviewUrl ? <div className="space-y-2"><p className="text-sm font-medium">Result screenshot</p><img src={resultPreviewUrl} alt="Trade result screenshot preview" className="h-56 w-full rounded-xl object-cover" /></div> : null}
               </CardContent>
             </Card>
           </Reveal>
@@ -561,7 +629,7 @@ const DailyForecastAdmin = () => {
               {filteredForecasts.length ? filteredForecasts.map((forecast) => {
                 const instrument = instruments.find((item) => item.id === forecast.instrument_id);
                 return <div key={forecast.id} className="flex flex-col justify-between gap-3 rounded-lg border p-4 sm:flex-row sm:items-center">
-                  <div><p className="font-semibold">{instrument ? `${instrument.market_type} · ${instrument.sub_market} · ${instrument.symbol} — ${instrument.name}` : "Unknown instrument"}</p><p className="text-sm text-muted-foreground">{forecast.direction.toUpperCase()} · {forecast.status.toUpperCase()} · {forecast.trade_date}</p></div>
+                  <div><p className="font-semibold">{instrument ? `${instrument.market_type} · ${instrument.sub_market} · ${instrument.symbol} — ${instrument.name}` : "Unknown instrument"}</p><p className="text-sm text-muted-foreground">{forecast.direction.toUpperCase()} · {forecast.status.toUpperCase()} · {forecast.trade_date}{forecast.result_image_path ? " · Result screenshot attached" : ""}</p></div>
                   <div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => handleEdit(forecast)}>Edit</Button><Button size="sm" variant="destructive" onClick={() => void handleDelete(forecast)}>Delete</Button></div>
                 </div>;
               }) : <p className="text-sm text-muted-foreground">{forecasts.length ? "No forecasts match these filters." : "No forecasts have been published yet."}</p>}
