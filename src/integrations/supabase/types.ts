@@ -31,9 +31,9 @@ export type Database = {
         Relationships: []
       }
       trading_forecasts: {
-        Row: { ai_extraction: Json | null; created_at: string; direction: string; execution_price: number; id: string; image_path: string; instrument_id: string; notes: string; published_at: string; status: string; stop_loss: number; take_profit_1: number; take_profit_2: number | null; trade_date: string; updated_at: string }
-        Insert: { ai_extraction?: Json | null; created_at?: string; direction: string; execution_price: number; id?: string; image_path: string; instrument_id: string; notes?: string; published_at?: string; status?: string; stop_loss: number; take_profit_1: number; take_profit_2?: number | null; trade_date?: string; updated_at?: string }
-        Update: { ai_extraction?: Json | null; created_at?: string; direction?: string; execution_price?: number; id?: string; image_path?: string; instrument_id?: string; notes?: string; published_at?: string; status?: string; stop_loss?: number; take_profit_1?: number; take_profit_2?: number | null; trade_date?: string; updated_at?: string }
+        Row: { ai_extraction: Json | null; created_at: string; direction: string; execution_price: number; id: string; image_path: string; instrument_id: string; notes: string; published_at: string; result_ai_extraction: Json | null; result_confirmed_at: string | null; result_image_path: string | null; status: string; stop_loss: number; take_profit_1: number; take_profit_2: number | null; trade_date: string; updated_at: string }
+        Insert: { ai_extraction?: Json | null; created_at?: string; direction: string; execution_price: number; id?: string; image_path: string; instrument_id: string; notes?: string; published_at?: string; result_ai_extraction?: Json | null; result_confirmed_at?: string | null; result_image_path?: string | null; status?: string; stop_loss: number; take_profit_1: number; take_profit_2?: number | null; trade_date?: string; updated_at?: string }
+        Update: { ai_extraction?: Json | null; created_at?: string; direction?: string; execution_price?: number; id?: string; image_path?: string; instrument_id?: string; notes?: string; published_at?: string; result_ai_extraction?: Json | null; result_confirmed_at?: string | null; result_image_path?: string | null; status?: string; stop_loss?: number; take_profit_1?: number; take_profit_2?: number | null; trade_date?: string; updated_at?: string }
         Relationships: []
       }
       user_activity_events: {
