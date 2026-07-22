@@ -25,6 +25,8 @@ const signupSchema = z.object({
   code: z.string().trim().regex(/^\d{6}$/),
 });
 
+const signupDetailsSchema = signupSchema.omit({ code: true });
+
 function useQueryParam(name: string) {
   const { search } = useLocation();
   return React.useMemo(() => new URLSearchParams(search).get(name), [search, name]);
@@ -72,19 +74,27 @@ export default function Auth() {
 
   const sendCode = async () => {
     setSignupError("");
-    const parsed = z.object({ email: z.string().trim().email().max(255) }).safeParse({ email });
+    const parsed = signupDetailsSchema.safeParse({ name, email, password, country, age, profession });
     if (!parsed.success) {
-      setSignupError("Please enter a valid email address.");
+      setSignupError("Please complete all signup details before requesting a verification code.");
       return;
     }
 
     setSignupLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-signup-code", {
-        body: { email: parsed.data.email },
+      const { error } = await supabase.auth.signUp({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        options: {
+          data: {
+            name: parsed.data.name,
+            country: parsed.data.country,
+            age: parsed.data.age,
+            profession: parsed.data.profession,
+          },
+        },
       });
       if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
       setCodeSent(true);
     } catch (e: unknown) {
       setSignupError(e instanceof Error ? e.message : "Failed to send verification code.");
@@ -100,25 +110,18 @@ export default function Auth() {
 
     const parsed = signupSchema.safeParse({ name, email, password, country, age, profession, code });
     if (!parsed.success) {
-      setSignupError("Please complete all fields and enter the 6-digit code.");
+      setSignupError("Please complete all fields and enter the verification code.");
       return;
     }
 
     setSignupLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("verify-signup-code", {
-        body: {
-          email: parsed.data.email,
-          code: parsed.data.code,
-          password: parsed.data.password,
-          name: parsed.data.name,
-          country: parsed.data.country,
-          age: parsed.data.age,
-          profession: parsed.data.profession,
-        },
+      const { error } = await supabase.auth.verifyOtp({
+        email: parsed.data.email,
+        token: parsed.data.code,
+        type: "email",
       });
       if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
       setSignupSuccess(true);
       setTab("login");
       setLoginEmail(parsed.data.email);
@@ -290,14 +293,14 @@ export default function Auth() {
                   {codeSent ? (
                     <div className="space-y-2">
                       <label htmlFor="signup-code" className="text-sm font-medium">
-                        6-digit code
+                        Verification code
                       </label>
                       <Input
                         id="signup-code"
                         inputMode="numeric"
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
-                        placeholder="123456"
+                        placeholder="Enter email code"
                         required
                       />
                     </div>
