@@ -83,7 +83,7 @@ export type TablesUpdate<
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends { Update: infer Update } ? Update : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DatabaseWithoutInternals["Tables"][DefaultSchemaTableNameOrOptions] extends { Update: infer Update } ? Update : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends { Update: infer Update } ? Update : never
     : never
 
 export const Constants = { public: { Enums: {} } } as const
