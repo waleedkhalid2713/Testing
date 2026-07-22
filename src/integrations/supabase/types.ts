@@ -44,7 +44,7 @@ export type Database = {
       }
     }
     Views: { [_ in never]: never }
-    Functions: { accept_forecast_disclaimer: { Args: Record<PropertyKey, never>; Returns: string } }
+    Functions: { accept_forecast_disclaimer: { Args: Record<PropertyKey, never>; Returns: string }; has_accepted_forecast_disclaimer: { Args: Record<PropertyKey, never>; Returns: boolean } }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
   }
