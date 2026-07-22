@@ -12,6 +12,23 @@ const jsonResponse = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+const fetchWithRetry = async (url: string, options: RequestInit) => {
+  let response: Response | null = null;
+
+  for (const delayMs of [0, 2_000, 5_000, 10_000]) {
+    if (delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+
+    response = await fetch(url, options);
+    if (response.status !== 429 && response.status !== 503) {
+      return response;
+    }
+  }
+
+  return response!;
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -75,7 +92,7 @@ Deno.serve(async (request) => {
 
   const imageBase64 = image.slice("data:image/jpeg;base64,".length);
   const model = "gemini-3.5-flash";
-  const geminiResponse = await fetch(
+  const geminiResponse = await fetchWithRetry(
     "https://generativelanguage.googleapis.com/v1beta/models/" +
       encodeURIComponent(model) +
       ":generateContent",
