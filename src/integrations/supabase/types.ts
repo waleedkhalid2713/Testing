@@ -19,9 +19,9 @@ export type Database = {
         Relationships: []
       }
       profiles: {
-        Row: { email: string; id: string; incorporated_at: string; region: string }
-        Insert: { email: string; id: string; incorporated_at?: string; region?: string }
-        Update: { email?: string; id?: string; incorporated_at?: string; region?: string }
+        Row: { email: string; forecast_disclaimer_accepted_at: string | null; id: string; incorporated_at: string; region: string }
+        Insert: { email: string; forecast_disclaimer_accepted_at?: string | null; id: string; incorporated_at?: string; region?: string }
+        Update: { email?: string; forecast_disclaimer_accepted_at?: string | null; id?: string; incorporated_at?: string; region?: string }
         Relationships: []
       }
       trading_instruments: {
@@ -44,7 +44,7 @@ export type Database = {
       }
     }
     Views: { [_ in never]: never }
-    Functions: { [_ in never]: never }
+    Functions: { accept_forecast_disclaimer: { Args: Record<PropertyKey, never>; Returns: string } }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
   }
