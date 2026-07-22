@@ -46,56 +46,72 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: "Upload a compressed JPEG image under 500 KB." }, 400);
   }
 
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) {
     return jsonResponse(
-      { error: "AI is not configured yet. Add OPENAI_API_KEY to this Edge Function's secrets." },
+      { error: "AI is not configured yet. Add GEMINI_API_KEY to this Edge Function's secrets." },
       503,
     );
   }
 
-  const instructions = `Read this TradingView trade screenshot. Extract only values clearly visible in the image; never invent a price, direction, symbol, or result. Return only valid JSON with:
-{
-  "market": "Forex | Indices | Commodities | Crypto | null",
-  "symbol": "string or null",
-  "direction": "long | short | null",
-  "executionPrice": number or null,
-  "stopLoss": number or null,
-  "takeProfit1": number or null,
-  "takeProfit2": number or null,
-  "status": "active | win | loss",
-  "notes": "short factual description of what was visible",
-  "confidence": "high | medium | low"
-}
-Use win or loss only if the screenshot explicitly proves the completed outcome. Otherwise use active.`;
+  const instructions = [
+    "Read this TradingView trade screenshot.",
+    "Extract only values clearly visible in the image; never invent a price, direction, symbol, or result.",
+    "Return only valid JSON with:",
+    "{",
+    '  "market": "Forex | Indices | Commodities | Crypto | null",',
+    '  "symbol": "string or null",',
+    '  "direction": "long | short | null",',
+    '  "executionPrice": number or null,',
+    '  "stopLoss": number or null,',
+    '  "takeProfit1": number or null,',
+    '  "takeProfit2": number or null,',
+    '  "status": "active | win | loss",',
+    '  "notes": "short factual description of what was visible",',
+    '  "confidence": "high | medium | low"',
+    "}",
+    "Use win or loss only if the screenshot explicitly proves the completed outcome. Otherwise use active.",
+  ].join("\\n");
 
-  const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+  const imageBase64 = image.slice("data:image/jpeg;base64,".length);
+  const model = Deno.env.get("GEMINI_VISION_MODEL") ?? "gemini-2.5-flash-lite";
+  const geminiResponse = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/" +
+      encodeURIComponent(model) +
+      ":generateContent",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        contents: [{
+          role: "user",
+          parts: [
+            { text: instructions },
+            { inline_data: { mime_type: "image/jpeg", data: imageBase64 } },
+          ],
+        }],
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      }),
     },
-    body: JSON.stringify({
-      model: Deno.env.get("OPENAI_VISION_MODEL") ?? "gpt-4o-mini",
-      input: [{
-        role: "user",
-        content: [
-          { type: "input_text", text: instructions },
-          { type: "input_image", image_url: image, detail: "low" },
-        ],
-      }],
-      max_output_tokens: 400,
-    }),
-  });
+  );
 
-  if (!openAiResponse.ok) {
-    const details = await openAiResponse.text();
-    console.error("OpenAI image analysis failed:", details);
-    return jsonResponse({ error: "The AI service could not analyse this image." }, 502);
+  if (!geminiResponse.ok) {
+    const details = await geminiResponse.text();
+    console.error("Gemini image analysis failed:", details);
+    return jsonResponse({ error: "The free AI service could not analyse this image. Please try again later." }, 502);
   }
 
-  const openAiData = await openAiResponse.json();
-  const text = openAiData.output_text?.trim();
+  const geminiData = await geminiResponse.json();
+  const text = geminiData.candidates?.[0]?.content?.parts
+    ?.map((part: { text?: string }) => part.text ?? "")
+    .join("")
+    .trim();
+
   if (!text) {
     return jsonResponse({ error: "The AI returned no readable trade details." }, 422);
   }
