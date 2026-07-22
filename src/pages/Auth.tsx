@@ -22,7 +22,7 @@ const signupSchema = z.object({
   country: z.string().trim().min(1).max(60),
   age: z.string().trim().min(1).max(20),
   profession: z.string().trim().min(1).max(80),
-  code: z.string().trim().regex(/^\d{6}$/),
+  code: z.string().trim().regex(/^\d{6,10}$/),
 });
 
 const signupDetailsSchema = signupSchema.omit({ code: true });
