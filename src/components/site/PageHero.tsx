@@ -23,9 +23,9 @@ export function PageHero({ title, subtitle, imageSrc, imageAlt, children }: Page
         <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/35 to-background" />
       </div>
 
-      <div className="container relative py-12">
+      <div className="container relative py-14 sm:py-16">
         <div className="max-w-3xl">
-          <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
+          <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">{title}</h1>
           {subtitle ? <p className="mt-3 text-pretty text-base text-muted-foreground sm:text-lg">{subtitle}</p> : null}
           {children ? <div className="mt-6">{children}</div> : null}
         </div>
