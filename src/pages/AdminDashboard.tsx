@@ -47,9 +47,18 @@ type ContactMessage = {
 };
 
 type Period = "7" | "30" | "90" | "all";
+type AdminSection = "overview" | "forecast" | "bootcamp" | "support" | "users";
 type MessageStatusFilter = "all" | "Unread" | "In progress" | "Resolved";
 
 const supportStatuses = ["Unread", "In progress", "Resolved"] as const;
+
+const adminSections: Array<{ id: AdminSection; heading: string; description: string }> = [
+  { id: "overview", heading: "Analytics Overview", description: "Website activity, filters, and charts." },
+  { id: "forecast", heading: "Forecast Management", description: "Publish and manage trade forecasts." },
+  { id: "bootcamp", heading: "Bootcamp Management", description: "Edit curriculum, pricing, and enrollment." },
+  { id: "support", heading: "Support Inbox", description: "Review and respond to customer messages." },
+  { id: "users", heading: "Registered Users", description: "Review, block, or delete user accounts." },
+];
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -106,6 +115,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState("");
   const [supportError, setSupportError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState<AdminSection>("overview");
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -337,7 +347,41 @@ const AdminDashboard = () => {
       />
 
       <div className="container py-12 space-y-6">
-        <Card className="border-primary/40">
+        <section aria-label="Admin workspaces">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {adminSections.map((section) => {
+              const isActive = activeSection === section.id;
+
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`group rounded-[var(--radius-card)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background`}
+                >
+                  <span className="block h-28 [perspective:800px]">
+                    <span className="relative block h-full [transform-style:preserve-3d] transition-transform duration-300 motion-reduce:transition-none group-hover:[transform:rotateY(180deg)] group-focus-visible:[transform:rotateY(180deg)]">
+                      <span
+                        className={`absolute inset-0 flex flex-col justify-between rounded-[var(--radius-card)] border p-4 [backface-visibility:hidden] ${
+                          isActive ? "border-primary bg-primary/15" : "border-border bg-card"
+                        }`}
+                      >
+                        <span className="text-sm font-semibold text-foreground">{section.heading}</span>
+                        <span className="text-xs leading-5 text-muted-foreground">{section.description}</span>
+                      </span>
+                      <span className="absolute inset-0 flex flex-col justify-center rounded-[var(--radius-card)] border border-primary/60 bg-primary/20 p-4 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                        <span className="text-sm font-semibold text-foreground">Open {section.heading}</span>
+                        <span className="mt-2 text-xs leading-5 text-foreground/80">Select this workspace to manage its content.</span>
+                      </span>
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+        <Card className={activeSection === "forecast" ? "border-primary/40" : "hidden"}>
           <CardHeader>
             <CardTitle>Daily Forecast Management</CardTitle>
             <CardDescription>Upload a TradingView image, let AI fill the trade values, and publish the forecast.</CardDescription>
@@ -349,9 +393,11 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <BootcampManagement />
+        <div className={activeSection === "bootcamp" ? "" : "hidden"}>
+          <BootcampManagement />
+        </div>
 
-        <Card>
+        <Card className={activeSection === "overview" ? "" : "hidden"}>
           <CardHeader>
             <CardTitle>Activity filters</CardTitle>
             <CardDescription>Use these filters to focus your analysis.</CardDescription>
@@ -388,7 +434,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className={activeSection === "overview" ? "grid gap-6 md:grid-cols-3" : "hidden"}>
           <Card>
             <CardHeader>
               <CardTitle>Registered users</CardTitle>
@@ -415,7 +461,7 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        <Card>
+        <Card className={activeSection === "support" ? "" : "hidden"}>
           <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
             <div className="space-y-1.5">
               <CardTitle>Support inbox</CardTitle>
@@ -532,12 +578,12 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {loading ? <p className="text-sm text-muted-foreground">Loading dashboard…</p> : null}
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {activeSection === "overview" && loading ? <p className="text-sm text-muted-foreground">Loading dashboard…</p> : null}
+        {activeSection === "overview" && error ? <p className="text-sm text-destructive">{error}</p> : null}
 
         {!loading && !error ? (
           <>
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className={activeSection === "overview" ? "grid gap-6 lg:grid-cols-2" : "hidden"}>
               <Card>
                 <CardHeader>
                   <CardTitle>Most visited options</CardTitle>
@@ -583,7 +629,7 @@ const AdminDashboard = () => {
               </Card>
             </div>
 
-            <Card>
+            <Card className={activeSection === "users" ? "" : "hidden"}>
               <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
                 <div className="space-y-1.5">
                   <CardTitle>Registered users</CardTitle>
