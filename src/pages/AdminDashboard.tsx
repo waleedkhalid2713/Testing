@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { Ban, Download, Reply, Trash2 } from "lucide-react";
 
+import { BootcampManagement } from "@/components/admin/BootcampManagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/site/PageHero";
@@ -347,6 +348,8 @@ const AdminDashboard = () => {
             </Button>
           </CardContent>
         </Card>
+
+        <BootcampManagement />
 
         <Card>
           <CardHeader>
