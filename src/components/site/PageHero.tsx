@@ -10,7 +10,7 @@ type PageHeroProps = {
 
 export function PageHero({ title, subtitle, imageSrc, imageAlt, children }: PageHeroProps) {
   return (
-    <header className="relative overflow-hidden border-b">
+    <header className="page-hero relative overflow-hidden border-b">
       <div className="pointer-events-none absolute inset-0">
         <img
           src={imageSrc}
