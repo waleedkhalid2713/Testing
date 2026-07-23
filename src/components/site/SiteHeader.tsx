@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { Session } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
@@ -13,22 +14,27 @@ const linkActive = "text-foreground md:text-foreground";
 export function SiteHeader() {
   const navigate = useNavigate();
   const [isSignedIn, setIsSignedIn] = React.useState(false);
+  const [greetingName, setGreetingName] = React.useState("Dear User");
   const { isAdmin } = useAdmin();
 
   React.useEffect(() => {
     // Keep legacy localStorage flags for now (non-admin user flow), but prefer backend auth when available.
-    const sync = (hasSession: boolean) => {
+    const sync = (session: Session | null) => {
       const isAdminFlag = window.localStorage.getItem("epic-trader-admin") === "true";
       const isUserFlag = window.localStorage.getItem("epic-trader-user") === "true";
-      setIsSignedIn(hasSession || isAdminFlag || isUserFlag);
+      const metadataName = session?.user.user_metadata?.name;
+      const firstName = typeof metadataName === "string" ? metadataName.trim().split(/\s+/)[0] : "";
+
+      setIsSignedIn(Boolean(session) || isAdminFlag || isUserFlag);
+      setGreetingName(firstName || "Dear User");
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      sync(Boolean(session));
+      sync(session);
     });
 
     supabase.auth.getSession().then(({ data }) => {
-      sync(Boolean(data.session));
+      sync(data.session);
     });
 
     return () => subscription.unsubscribe();
@@ -84,6 +90,9 @@ export function SiteHeader() {
 
         {/* Right: CTA */}
         <div className="ml-auto flex items-center justify-end gap-2">
+          <p className="hidden whitespace-nowrap text-sm text-muted-foreground md:block">
+            Welcome, <span className="font-semibold text-foreground">{greetingName}</span>
+          </p>
           {isSignedIn ? (
             <>
               {isAdmin ? (
