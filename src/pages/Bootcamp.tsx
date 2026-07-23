@@ -287,7 +287,7 @@ const Bootcamp = () => {
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
             {learningBenefits.map(({ label, Icon }) => (
-              <Card key={label} className="h-full border-border/80 bg-card/85">
+              <Card key={label} className="h-full border-0 bg-[#151E2E]/90 bg-[image:none] shadow-none">
                 <CardContent className="flex min-h-24 flex-col items-center justify-center gap-2 p-2 text-center">
                   <Icon className="size-4 text-primary" aria-hidden="true" />
                   <p className="text-xs font-medium leading-4 text-foreground">{label}</p>
