@@ -1,6 +1,4 @@
 import * as React from "react";
-import type { Session } from "@supabase/supabase-js";
-import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import brandLogo from "@/assets/epic-trader-logo.png";
@@ -8,52 +6,44 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdmin } from "@/hooks/useAdmin";
 
 const linkBase =
-  "text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground md:text-base";
-const linkActive = "text-foreground md:text-foreground";
+  "site-nav-link relative text-sm font-semibold text-foreground/80 transition-colors hover:text-foreground md:text-base";
+const linkActive = "site-nav-link-active text-foreground md:text-foreground";
 
 export function SiteHeader() {
-  const navigate = useNavigate();
   const [isSignedIn, setIsSignedIn] = React.useState(false);
-  const [greetingName, setGreetingName] = React.useState("Dear User");
   const { isAdmin } = useAdmin();
 
   React.useEffect(() => {
     // Keep legacy localStorage flags for now (non-admin user flow), but prefer backend auth when available.
-    const sync = (session: Session | null) => {
+    const sync = (hasSession: boolean) => {
       const isAdminFlag = window.localStorage.getItem("epic-trader-admin") === "true";
       const isUserFlag = window.localStorage.getItem("epic-trader-user") === "true";
-      const metadataName = session?.user.user_metadata?.name;
-      const firstName = typeof metadataName === "string" ? metadataName.trim().split(/\s+/)[0] : "";
-
-      setIsSignedIn(Boolean(session) || isAdminFlag || isUserFlag);
-      setGreetingName(firstName || "Dear User");
+      setIsSignedIn(hasSession || isAdminFlag || isUserFlag);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      sync(session);
+      sync(Boolean(session));
     });
 
     supabase.auth.getSession().then(({ data }) => {
-      sync(data.session);
+      sync(Boolean(data.session));
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     window.localStorage.removeItem("epic-trader-admin");
     window.localStorage.removeItem("epic-trader-user");
-    await supabase.auth.signOut();
+    supabase.auth.signOut();
     setIsSignedIn(false);
-    setGreetingName("Dear User");
-    navigate("/", { replace: true });
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="site-header sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex flex-wrap items-center gap-4 py-3 md:h-16 md:flex-nowrap md:py-0">
         {/* Left: Brand */}
-        <div className="flex shrink-0 flex-col">
+        <div className="flex shrink-0 items-center">
           <NavLink
             to="/"
             className="flex items-center gap-2 text-sm font-semibold tracking-wide md:text-base"
@@ -62,9 +52,6 @@ export function SiteHeader() {
             <img src={brandLogo} alt="Epic Trader" className="h-7 w-7" />
             <span>Epic Trader</span>
           </NavLink>
-          <p className="mt-1 text-xs text-muted-foreground md:hidden">
-            Hi, <span className="font-semibold text-foreground">{greetingName}</span>
-          </p>
         </div>
 
         {/* Primary: Navigation */}
@@ -76,7 +63,7 @@ export function SiteHeader() {
             Bootcamp
           </NavLink>
           <NavLink to="/forecast" className={linkBase} activeClassName={linkActive}>
-            Daily Forecasts
+            Forecasts
           </NavLink>
           <NavLink to="/about" className={linkBase} activeClassName={linkActive}>
             About
@@ -94,9 +81,6 @@ export function SiteHeader() {
 
         {/* Right: CTA */}
         <div className="ml-auto flex items-center justify-end gap-2">
-          <p className="hidden whitespace-nowrap text-sm text-muted-foreground md:block">
-            Welcome, <span className="font-semibold text-foreground">{greetingName}</span>
-          </p>
           {isSignedIn ? (
             <>
               {isAdmin ? (
@@ -109,9 +93,14 @@ export function SiteHeader() {
               </Button>
             </>
           ) : (
-            <Button asChild size="sm" variant="outline" className="rounded-full px-5">
-              <a href="/auth">Sign In</a>
-            </Button>
+            <>
+              <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
+                <a href="/auth?mode=signup">Sign Up</a>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-full px-5">
+                <a href="/auth">Sign In</a>
+              </Button>
+            </>
           )}
           <Button asChild size="sm" className="rounded-full px-5">
             <a href="/bootcamp">Join Bootcamp</a>
