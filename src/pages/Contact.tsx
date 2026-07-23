@@ -113,21 +113,35 @@ const Contact = () => {
   const selectedCategory = watch("category");
 
   const submitMessage = async (values: ContactValues) => {
-    const { error } = await supabase.from("contact_messages").insert({
-      name: values.name,
-      email: values.email,
-      subject: values.subject,
-      category: values.category,
-      message: values.message,
-    });
+    const { data: savedMessage, error } = await supabase
+      .from("contact_messages")
+      .insert({
+        name: values.name,
+        email: values.email,
+        subject: values.subject,
+        category: values.category,
+        message: values.message,
+      })
+      .select("id")
+      .single();
 
-    if (error) {
+    if (error || !savedMessage) {
       toast.error("We could not send your message. Please try again or email support directly.");
       return;
     }
 
+    const { error: notificationError } = await supabase.functions.invoke("notify-support-message", {
+      body: { messageId: savedMessage.id },
+    });
+
+    if (notificationError) {
+      console.warn("Support email notification failed:", notificationError.message);
+      toast.warning("Your message was saved. The support email notification is being checked.");
+    } else {
+      toast.success("Thank you! We've received your message and will respond within 24 hours.");
+    }
+
     reset();
-    toast.success("Thank you! We've received your message and will respond within 24 hours.");
   };
 
   return (
