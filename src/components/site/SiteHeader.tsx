@@ -53,7 +53,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex flex-wrap items-center gap-4 py-3 md:h-16 md:flex-nowrap md:py-0">
         {/* Left: Brand */}
-        <div className="flex shrink-0 items-center">
+        <div className="flex shrink-0 flex-col">
           <NavLink
             to="/"
             className="flex items-center gap-2 text-sm font-semibold tracking-wide md:text-base"
@@ -62,6 +62,9 @@ export function SiteHeader() {
             <img src={brandLogo} alt="Epic Trader" className="h-7 w-7" />
             <span>Epic Trader</span>
           </NavLink>
+          <p className="mt-1 text-xs text-muted-foreground md:hidden">
+            Hi, <span className="font-semibold text-foreground">{greetingName}</span>
+          </p>
         </div>
 
         {/* Primary: Navigation */}
@@ -106,14 +109,9 @@ export function SiteHeader() {
               </Button>
             </>
           ) : (
-            <>
-              <Button asChild size="sm" variant="secondary" className="rounded-full px-5">
-                <a href="/auth?mode=signup">Sign Up</a>
-              </Button>
-              <Button asChild size="sm" variant="outline" className="rounded-full px-5">
-                <a href="/auth">Sign In</a>
-              </Button>
-            </>
+            <Button asChild size="sm" variant="outline" className="rounded-full px-5">
+              <a href="/auth">Sign In</a>
+            </Button>
           )}
           <Button asChild size="sm" className="rounded-full px-5">
             <a href="/bootcamp">Join Bootcamp</a>
