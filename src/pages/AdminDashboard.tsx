@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Download, Reply } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -202,6 +203,16 @@ const AdminDashboard = () => {
     setUpdatingMessageId(null);
   };
 
+  const replyToSupportMessage = async (message: ContactMessage) => {
+    if (message.status === "Unread") {
+      await updateMessageStatus(message.id, "In progress");
+    }
+
+    const subject = encodeURIComponent(`Re: ${message.subject}`);
+    const body = encodeURIComponent(`Hello ${message.name},\n\nThank you for contacting Epic Trader Support.\n\n`);
+    window.location.href = `mailto:${message.email}?subject=${subject}&body=${body}`;
+  };
+
   const pageVisits = useMemo(() => {
     const counts = new Map<string, number>();
 
@@ -258,6 +269,22 @@ const AdminDashboard = () => {
         pageLabel(event.page),
         event.region,
         formatDate(event.visited_at),
+      ]),
+    );
+  };
+
+  const exportSupportMessages = () => {
+    downloadCsv(
+      "epic-trader-support-messages.csv",
+      ["Received", "Name", "Email", "Subject", "Category", "Message", "Status"],
+      filteredSupportMessages.map((message) => [
+        formatDate(message.created_at),
+        message.name,
+        message.email,
+        message.subject,
+        message.category,
+        message.message,
+        message.status,
       ]),
     );
   };
@@ -349,11 +376,24 @@ const AdminDashboard = () => {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Support inbox</CardTitle>
-            <CardDescription>
-              Review customer messages and update their status. {unreadSupportMessages} unread message{unreadSupportMessages === 1 ? "" : "s"}.
-            </CardDescription>
+          <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
+            <div className="space-y-1.5">
+              <CardTitle>Support inbox</CardTitle>
+              <CardDescription>
+                Review customer messages and update their status. {unreadSupportMessages} unread message{unreadSupportMessages === 1 ? "" : "s"}.
+              </CardDescription>
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              aria-label="Export support messages as CSV"
+              title="Export support messages"
+              disabled={!filteredSupportMessages.length}
+              onClick={exportSupportMessages}
+            >
+              <Download className="size-4" />
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             <label className="block max-w-xs space-y-2 text-sm font-medium">
@@ -385,7 +425,8 @@ const AdminDashboard = () => {
                     <th className="py-3 pr-4">Received</th>
                     <th className="py-3 pr-4">Sender</th>
                     <th className="py-3 pr-4">Message</th>
-                    <th className="py-3">Status</th>
+                    <th className="py-3 pr-4">Status</th>
+                    <th className="py-3 text-right">Reply</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -423,11 +464,24 @@ const AdminDashboard = () => {
                             ))}
                           </select>
                         </td>
+                        <td className="py-3 text-right">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            aria-label={`Reply to ${message.name}`}
+                            title="Reply and mark in progress"
+                            disabled={updatingMessageId === message.id}
+                            onClick={() => void replyToSupportMessage(message)}
+                          >
+                            <Reply className="size-4" />
+                          </Button>
+                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} className="py-5 text-muted-foreground">
+                      <td colSpan={5} className="py-5 text-muted-foreground">
                         No support messages match this filter.
                       </td>
                     </tr>
@@ -435,21 +489,6 @@ const AdminDashboard = () => {
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Export data</CardTitle>
-            <CardDescription>Download CSV files that open directly in Microsoft Excel.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Button type="button" variant="secondary" onClick={exportUsers} disabled={!filteredProfiles.length}>
-              Export users CSV
-            </Button>
-            <Button type="button" variant="secondary" onClick={exportActivity} disabled={!filteredActivity.length}>
-              Export filtered activity CSV
-            </Button>
           </CardContent>
         </Card>
 
@@ -505,9 +544,22 @@ const AdminDashboard = () => {
             </div>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Registered users</CardTitle>
-                <CardDescription>Email, signup date, region, and forecast disclaimer acceptance.</CardDescription>
+              <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
+                <div className="space-y-1.5">
+                  <CardTitle>Registered users</CardTitle>
+                  <CardDescription>Email, signup date, region, and forecast disclaimer acceptance.</CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Export registered users as CSV"
+                  title="Export registered users"
+                  disabled={!filteredProfiles.length}
+                  onClick={exportUsers}
+                >
+                  <Download className="size-4" />
+                </Button>
               </CardHeader>
               <CardContent className="overflow-auto">
                 <table className="w-full min-w-[560px] text-sm">
