@@ -11,14 +11,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Download, Reply, Send, X } from "lucide-react";
+import { Download, Reply } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/site/PageHero";
 import heroImage from "@/assets/module-forecast-daily.jpg";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 type Profile = {
   id: string;
@@ -99,9 +98,6 @@ const AdminDashboard = () => {
   const [supportMessages, setSupportMessages] = useState<ContactMessage[]>([]);
   const [messageStatusFilter, setMessageStatusFilter] = useState<MessageStatusFilter>("all");
   const [updatingMessageId, setUpdatingMessageId] = useState<string | null>(null);
-  const [replyingTo, setReplyingTo] = useState<ContactMessage | null>(null);
-  const [replyBody, setReplyBody] = useState("");
-  const [sendingReply, setSendingReply] = useState(false);
   const [region, setRegion] = useState("all");
   const [period, setPeriod] = useState<Period>("30");
   const [error, setError] = useState("");
@@ -207,42 +203,20 @@ const AdminDashboard = () => {
     setUpdatingMessageId(null);
   };
 
-  const openReplyComposer = (message: ContactMessage) => {
-    setReplyingTo(message);
-    setReplyBody(`Hello ${message.name},\n\n`);
-  };
-
-  const sendSupportReply = async () => {
-    if (!replyingTo || replyBody.trim().length < 2) {
-      toast.error("Enter a reply before sending.");
-      return;
-    }
-
-    setSendingReply(true);
-    setSupportError("");
-
-    const { error: replyError } = await supabase.functions.invoke("send-support-reply", {
-      body: {
-        messageId: replyingTo.id,
-        reply: replyBody.trim(),
-      },
+  const replyToSupportMessage = (message: ContactMessage) => {
+    const search = new URLSearchParams({
+      view: "cm",
+      fs: "1",
+      to: message.email,
+      su: `Re: [Epic Trader] ${message.subject}`,
+      body: `Hello ${message.name},\n\nThank you for contacting Epic Trader Support.\n\n`,
     });
 
-    if (replyError) {
-      setSupportError(replyError.message || "The reply email could not be sent.");
-      toast.error("Reply email could not be sent.");
-    } else {
-      setSupportMessages((current) =>
-        current.map((message) =>
-          message.id === replyingTo.id ? { ...message, status: "In progress" } : message,
-        ),
-      );
-      toast.success(`Reply sent to ${replyingTo.email}. Status updated to In progress.`);
-      setReplyingTo(null);
-      setReplyBody("");
-    }
+    window.open(`https://mail.google.com/mail/u/0/?${search.toString()}`, "_blank", "noopener,noreferrer");
 
-    setSendingReply(false);
+    if (message.status === "Unread") {
+      void updateMessageStatus(message.id, "In progress");
+    }
   };
 
   const pageVisits = useMemo(() => {
@@ -450,53 +424,6 @@ const AdminDashboard = () => {
               </p>
             ) : null}
 
-            {replyingTo ? (
-              <div className="rounded-xl border border-border bg-muted/20 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-medium">Reply to {replyingTo.name}</p>
-                    <p className="text-sm text-muted-foreground">{replyingTo.email} · Re: {replyingTo.subject}</p>
-                  </div>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Close reply form"
-                    title="Close reply form"
-                    disabled={sendingReply}
-                    onClick={() => {
-                      setReplyingTo(null);
-                      setReplyBody("");
-                    }}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                </div>
-                <label className="mt-4 block space-y-2 text-sm font-medium">
-                  Your reply
-                  <textarea
-                    className="min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-normal"
-                    value={replyBody}
-                    disabled={sendingReply}
-                    onChange={(event) => setReplyBody(event.target.value)}
-                  />
-                </label>
-                <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <Button
-                    type="button"
-                    disabled={sendingReply || replyBody.trim().length < 2}
-                    onClick={() => void sendSupportReply()}
-                  >
-                    <Send className="size-4" />
-                    {sendingReply ? "Sending reply…" : "Send reply"}
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    This email uses Epic Trader Support and automatically sets this message to In progress.
-                  </p>
-                </div>
-              </div>
-            ) : null}
-
             <div className="overflow-auto">
               <table className="w-full min-w-[820px] text-sm">
                 <thead>
@@ -549,9 +476,9 @@ const AdminDashboard = () => {
                             size="icon"
                             variant="ghost"
                             aria-label={`Reply to ${message.name}`}
-                            title="Reply from Epic Trader Support"
-                            disabled={updatingMessageId === message.id || sendingReply}
-                            onClick={() => openReplyComposer(message)}
+                            title="Open Gmail and mark in progress"
+                            disabled={updatingMessageId === message.id}
+                            onClick={() => replyToSupportMessage(message)}
                           >
                             <Reply className="size-4" />
                           </Button>
