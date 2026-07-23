@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -80,10 +80,6 @@ const Bootcamp = () => {
     };
   }, []);
 
-  const primaryPlan = useMemo(
-    () => content.plans.find((plan) => plan.enrollmentOpen) ?? content.plans[0],
-    [content.plans],
-  );
 
   return (
     <div className="relative isolate overflow-hidden bg-[#0B0F19]">
@@ -359,15 +355,6 @@ const Bootcamp = () => {
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
             {content.finalCta.text}
           </p>
-          <div className="mt-6">
-            {primaryPlan?.enrollmentOpen ? (
-              <Button asChild>
-                <Link to={getEnrollmentPath(primaryPlan)}>{content.finalCta.buttonText}</Link>
-              </Button>
-            ) : (
-              <Button disabled>{content.finalCta.buttonText}</Button>
-            )}
-          </div>
         </section>
       </main>
     </div>
