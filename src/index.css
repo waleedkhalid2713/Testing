@@ -78,6 +78,9 @@ All colors MUST be HSL.
     /* Shadows */
     --shadow-soft: 0 14px 46px -22px hsl(var(--accent-purple) / 0.40);
     --shadow-glow: 0 20px 80px -30px hsl(var(--accent-purple) / 0.62);
+    --shadow-button: 0 14px 34px -18px hsl(var(--primary) / 0.55);
+    --shadow-button-hover: 0 16px 38px -18px hsl(var(--primary) / 0.60);
+    --radius-card: 0.5rem;
 
     /* Card image tint (kept for any future use) */
     --card-image-tint: 266 40% 28%;
@@ -135,5 +138,98 @@ All colors MUST be HSL.
   .hover-glow:hover {
     box-shadow: var(--shadow-glow);
     transform: translateY(-2px);
+  }
+}
+
+/* Refined dark-theme preview: limited to Contact, Legal, and Forecasts. */
+:root[data-theme="refined-dark-preview"] {
+  --background: 224 40% 7%;
+  --foreground: 210 40% 98%;
+  --card: 220 23% 11%;
+  --card-foreground: 210 40% 98%;
+  --popover: 220 23% 11%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 263 70% 50%;
+  --primary-foreground: 0 0% 100%;
+  --primary-glow: 258 90% 66%;
+  --accent-purple: 263 70% 50%;
+  --accent-teal: 188 94% 43%;
+  --secondary: 218 23% 14%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 220 22% 12%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 218 23% 14%;
+  --accent-foreground: 210 40% 98%;
+  --border: 0 0% 100% / 0.08;
+  --input: 218 29% 9%;
+  --ring: 258 90% 76%;
+  --radius: 0.625rem;
+  --radius-card: 0.9375rem;
+  --gradient-page: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
+  --gradient-hero: radial-gradient(760px circle at 52% 12%, hsl(var(--primary) / 0.11), transparent 62%),
+    radial-gradient(680px circle at 78% 72%, hsl(var(--accent-teal) / 0.045), transparent 68%);
+  --gradient-primary: linear-gradient(135deg, #7C3AED, #8B5CF6 72%, #06B6D4 150%);
+  --gradient-card: none;
+  --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.24);
+  --shadow-glow: 0 18px 40px rgba(0, 0, 0, 0.30);
+  --shadow-button: 0 8px 20px rgba(124, 58, 237, 0.20);
+  --shadow-button-hover: 0 10px 24px rgba(124, 58, 237, 0.26);
+}
+
+.refined-dark-preview { color: #F8FAFC; }
+.refined-dark-preview .site-header,
+.refined-dark-preview .site-footer {
+  background-color: #10131D;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.refined-dark-preview .site-header { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02); }
+.refined-dark-preview .site-nav-link-active::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.65rem;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7C3AED, #06B6D4);
+  content: "";
+}
+.refined-dark-preview .site-footer p:first-child { color: #F8FAFC; }
+.refined-dark-preview .risk-ticker {
+  background-color: rgba(16, 19, 29, 0.94);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.refined-dark-preview .risk-ticker p {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.refined-dark-preview .page-hero img { opacity: 0.24; }
+.refined-dark-preview .page-hero > div:first-child > div:nth-child(2) { background-color: hsl(var(--background) / 0.82); }
+.refined-dark-preview input,
+.refined-dark-preview textarea,
+.refined-dark-preview select {
+  background-color: #11151E;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #F8FAFC;
+}
+.refined-dark-preview input::placeholder,
+.refined-dark-preview textarea::placeholder { color: #64748B; }
+.refined-dark-preview input:focus,
+.refined-dark-preview textarea:focus,
+.refined-dark-preview select:focus {
+  border-color: #A78BFA;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+}
+.refined-dark-preview .hover-glow:hover {
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .refined-dark-preview *,
+  .refined-dark-preview *::before,
+  .refined-dark-preview *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

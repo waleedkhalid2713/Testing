@@ -6,7 +6,7 @@ const DISCLAIMER_TEXT =
 export function MarqueeTicker({ text = DISCLAIMER_TEXT }: { text?: string }) {
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="risk-ticker fixed inset-x-0 bottom-0 z-50 border-t bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       role="note"
       aria-label="Risk disclaimer"
     >
