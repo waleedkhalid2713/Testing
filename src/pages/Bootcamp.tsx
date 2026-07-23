@@ -86,8 +86,15 @@ const Bootcamp = () => {
   );
 
   return (
-    <div>
-      <section className="relative overflow-hidden border-b border-border">
+    <div className="relative isolate overflow-hidden bg-[#0B0F19]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_84%_5%,rgba(6,182,212,0.12),transparent_25rem),radial-gradient(circle_at_8%_32%,rgba(124,58,237,0.10),transparent_30rem),radial-gradient(circle_at_86%_72%,rgba(124,58,237,0.08),transparent_28rem),linear-gradient(180deg,#0B0F19_0%,#0B111B_45%,#0B0F19_100%)]" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-[22rem] -z-10 h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent"
+      />
+      <section className="relative overflow-hidden border-b border-border bg-background/35">
         <img
           src={heroImage}
           alt=""
@@ -118,7 +125,7 @@ const Bootcamp = () => {
         </div>
       </section>
 
-      <main className="container space-y-12 py-10 sm:space-y-14 sm:py-12">
+      <main className="container relative space-y-12 py-10 sm:space-y-14 sm:py-12">
         <section aria-labelledby="roadmap-heading">
           <div className="mb-5 max-w-2xl">
             <h2 id="roadmap-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
@@ -188,7 +195,7 @@ const Bootcamp = () => {
                             {plan.discount.percentage}% off
                             {plan.discount.title ? " — " + plan.discount.title : ""}
                           </p>
-                          {plan.discount.expiry ? (
+                          {plan.discount.expiresAt ? (
                             <p className="mt-1 text-xs text-muted-foreground">
                               Offer ends {formatDate(plan.discount.expiry)}
                             </p>
