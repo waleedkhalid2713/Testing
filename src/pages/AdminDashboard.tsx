@@ -100,39 +100,49 @@ const AdminDashboard = () => {
   const [region, setRegion] = useState("all");
   const [period, setPeriod] = useState<Period>("30");
   const [error, setError] = useState("");
+  const [supportError, setSupportError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadDashboard = async () => {
-      const [profilesResponse, activityResponse] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, email, incorporated_at, region, forecast_disclaimer_accepted_at")
-          .order("incorporated_at", { ascending: false }),
-        supabase
-          .from("user_activity_events")
-          .select("id, page, region, visited_at")
-          .order("visited_at", { ascending: false }),
-        supabase
-          .from("contact_messages")
-          .select("id, name, email, subject, category, message, status, created_at")
-          .order("created_at", { ascending: false }),
-      ]);
+      setLoading(true);
+      setError("");
+      setSupportError("");
 
-      const messages = [
-        profilesResponse.error?.message,
-        activityResponse.error?.message,
-        contactMessagesResponse.error?.message,
-      ].filter(Boolean);
-      if (messages.length) {
-        setError(messages.join(" "));
-      } else {
-        setProfiles(profilesResponse.data);
-        setActivity(activityResponse.data);
-        setSupportMessages(contactMessagesResponse.data);
+      try {
+        const [profilesResponse, activityResponse, contactMessagesResponse] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("id, email, incorporated_at, region, forecast_disclaimer_accepted_at")
+            .order("incorporated_at", { ascending: false }),
+          supabase
+            .from("user_activity_events")
+            .select("id, page, region, visited_at")
+            .order("visited_at", { ascending: false }),
+          supabase
+            .from("contact_messages")
+            .select("id, name, email, subject, category, message, status, created_at")
+            .order("created_at", { ascending: false }),
+        ]);
+
+        const dashboardErrors = [profilesResponse.error?.message, activityResponse.error?.message].filter(Boolean);
+        if (dashboardErrors.length) {
+          setError(dashboardErrors.join(" "));
+        } else {
+          setProfiles(profilesResponse.data ?? []);
+          setActivity(activityResponse.data ?? []);
+        }
+
+        if (contactMessagesResponse.error) {
+          setSupportError(contactMessagesResponse.error.message);
+        } else {
+          setSupportMessages(contactMessagesResponse.data ?? []);
+        }
+      } catch {
+        setError("The dashboard could not be loaded. Please refresh and try again.");
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     void loadDashboard();
@@ -182,7 +192,7 @@ const AdminDashboard = () => {
       .eq("id", messageId);
 
     if (updateError) {
-      setError(updateError.message);
+      setSupportError(updateError.message);
     } else {
       setSupportMessages((current) =>
         current.map((message) => (message.id === messageId ? { ...message, status } : message)),
@@ -361,6 +371,12 @@ const AdminDashboard = () => {
                 ))}
               </select>
             </label>
+
+            {supportError ? (
+              <p className="text-sm text-destructive">
+                Support inbox is unavailable: {supportError}
+              </p>
+            ) : null}
 
             <div className="overflow-auto">
               <table className="w-full min-w-[820px] text-sm">
