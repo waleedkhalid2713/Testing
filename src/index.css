@@ -152,6 +152,7 @@ All colors MUST be HSL.
 }
 
 /* Shared Epic Trader dark theme used across every application route. */
+:root,
 :root[data-theme="epic-dark"] {
   --background: 224 40% 7%;
   --foreground: 210 40% 98%;
