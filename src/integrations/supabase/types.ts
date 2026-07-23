@@ -18,6 +18,12 @@ export type Database = {
         Update: { attempts?: number; code_hash?: string; consumed_at?: string | null; created_at?: string; email?: string; expires_at?: string; id?: string; purpose?: string }
         Relationships: []
       }
+      contact_messages: {
+        Row: { category: string; created_at: string; email: string; id: string; message: string; name: string; status: string; subject: string }
+        Insert: { category: string; created_at?: string; email: string; id?: string; message: string; name: string; status?: string; subject: string }
+        Update: { category?: string; created_at?: string; email?: string; id?: string; message?: string; name?: string; status?: string; subject?: string }
+        Relationships: []
+      }
       profiles: {
         Row: { email: string; forecast_disclaimer_accepted_at: string | null; id: string; incorporated_at: string; region: string }
         Insert: { email: string; forecast_disclaimer_accepted_at?: string | null; id: string; incorporated_at?: string; region?: string }
