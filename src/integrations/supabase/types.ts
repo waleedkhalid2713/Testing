@@ -24,6 +24,12 @@ export type Database = {
         Update: { category?: string; created_at?: string; email?: string; id?: string; message?: string; name?: string; status?: string; subject?: string }
         Relationships: []
       }
+      bootcamp_content: {
+        Row: { content: Json; created_at: string; id: string; updated_at: string }
+        Insert: { content?: Json; created_at?: string; id?: string; updated_at?: string }
+        Update: { content?: Json; created_at?: string; id?: string; updated_at?: string }
+        Relationships: []
+      }
       profiles: {
         Row: { email: string; forecast_disclaimer_accepted_at: string | null; id: string; incorporated_at: string; region: string }
         Insert: { email: string; forecast_disclaimer_accepted_at?: string | null; id: string; incorporated_at?: string; region?: string }
