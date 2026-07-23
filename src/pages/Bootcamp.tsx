@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Brain, Building2, GitBranch, Handshake, LineChart, MessageCircle, ShieldCheck } from "lucide-react";
+import { BookOpen, Brain, Building2, CircleCheck, GitBranch, Handshake, LineChart, MessageCircle, ShieldCheck } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -280,80 +280,78 @@ const Bootcamp = () => {
         </section>
 
         <section aria-labelledby="why-heading">
-          <div className="mb-5 max-w-2xl">
+          <div className="mb-5 text-center">
             <h2 id="why-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
               Why Learn with Epic Trader?
             </h2>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
             {learningBenefits.map(({ label, Icon }) => (
               <Card key={label} className="h-full border-border/80 bg-card/85">
-                <CardContent className="flex min-h-28 flex-col items-center justify-center gap-3 p-3 text-center">
-                  <Icon className="size-5 text-primary" aria-hidden="true" />
-                  <p className="text-xs font-medium leading-5 text-foreground">{label}</p>
+                <CardContent className="flex min-h-24 flex-col items-center justify-center gap-2 p-2 text-center">
+                  <Icon className="size-4 text-primary" aria-hidden="true" />
+                  <p className="text-xs font-medium leading-4 text-foreground">{label}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
-        </section>
 
-        <section className="grid gap-6 lg:grid-cols-2" aria-labelledby="outcomes-heading">
-          <div>
-            <h2 id="outcomes-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
-              What You Will Learn to Do
-            </h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              Practical skills that support a disciplined and repeatable trading process.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {[
-              "Understand institutional market structure",
-              "Identify liquidity",
-              "Read algorithmic price delivery",
-              "Build your own framework",
-              "Execute with discipline",
-              "Professional risk management",
-              "Improve emotional control",
-              "Review trading performance",
-            ].map((item) => (
-              <div key={item} className="rounded-lg border border-border bg-card px-4 py-3 text-sm leading-5 text-foreground">
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+          <div className="mt-8 grid gap-8 lg:grid-cols-2 lg:gap-10">
+            <section aria-labelledby="outcomes-heading">
+              <h2 id="outcomes-heading" className="font-display text-2xl font-semibold text-foreground">
+                What You Will Learn to Do
+              </h2>
+              <ul className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                {[
+                  "Understand institutional market structure",
+                  "Identify liquidity and high-probability opportunities",
+                  "Read algorithmic price delivery",
+                  "Develop your own trading framework",
+                  "Execute trades with discipline and consistency",
+                  "Manage risk like a professional",
+                  "Improve emotional control",
+                  "Review and improve trading performance",
+                ].map((item) => (
+                  <li key={item} className="flex gap-2 text-sm leading-5 text-muted-foreground">
+                    <CircleCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-        <section className="max-w-4xl" aria-labelledby="faq-heading">
-          <h2 id="faq-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
-            Frequently Asked Questions
-          </h2>
-          <Accordion type="single" collapsible className="mt-4 rounded-xl border border-border bg-card px-4">
-            <AccordionItem value="experience">
-              <AccordionTrigger>Do I need previous trading experience?</AccordionTrigger>
-              <AccordionContent>
-                No. The program starts with foundational concepts and progresses through structured implementation.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="classes">
-              <AccordionTrigger>Where are live classes conducted?</AccordionTrigger>
-              <AccordionContent>
-                Live sessions are conducted through the official Epic Trader Discord server.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="recordings">
-              <AccordionTrigger>Will recordings be available?</AccordionTrigger>
-              <AccordionContent>
-                Batch Learning Program members receive access to session recordings as included in their plan.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="batch">
-              <AccordionTrigger>When does the next batch begin?</AccordionTrigger>
-              <AccordionContent>
-                The latest enrollment and batch dates are shown in the Batch Learning Program information above.
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+            <section aria-labelledby="faq-heading">
+              <h2 id="faq-heading" className="font-display text-2xl font-semibold text-foreground">
+                Frequently Asked Questions
+              </h2>
+              <Accordion type="single" collapsible className="mt-4 space-y-2">
+                <AccordionItem value="experience" className="rounded-md border border-border bg-card px-3">
+                  <AccordionTrigger className="py-2 text-sm">Do I need previous trading experience?</AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground">
+                    No. The program starts with foundational concepts and progresses through structured implementation.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="classes" className="rounded-md border border-border bg-card px-3">
+                  <AccordionTrigger className="py-2 text-sm">Where are live classes conducted?</AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground">
+                    Live sessions are conducted through the official Epic Trader Discord server.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="recordings" className="rounded-md border border-border bg-card px-3">
+                  <AccordionTrigger className="py-2 text-sm">Will recordings be available?</AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground">
+                    Batch Learning Program members receive access to session recordings as included in their plan.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="batch" className="rounded-md border border-border bg-card px-3">
+                  <AccordionTrigger className="py-2 text-sm">When does the next batch begin?</AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground">
+                    The latest enrollment and batch dates are shown in the Batch Learning Program information above.
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </section>
+          </div>
         </section>
 
         <section className="rounded-2xl border border-border bg-card px-5 py-8 text-center shadow-card sm:px-8">
