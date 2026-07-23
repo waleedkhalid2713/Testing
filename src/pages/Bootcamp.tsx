@@ -48,6 +48,12 @@ const learningBenefits = [
   { label: "Continuous Mentorship & Support", Icon: Handshake },
 ];
 
+const planHighlights: Record<string, string> = {
+  "one-to-one-advanced": "Best for personal growth",
+  "one-to-one-implementation": "Complete transformation",
+  "batch-learning": "Most affordable",
+};
+
 const Bootcamp = () => {
   const [content, setContent] = useState<BootcampContent>(DEFAULT_BOOTCAMP_CONTENT);
 
@@ -169,7 +175,7 @@ const Bootcamp = () => {
         </section>
 
         <section aria-labelledby="pricing-heading">
-          <div className="mb-5 max-w-2xl">
+          <div className="mb-6 text-center">
             <h2 id="pricing-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
               Choose Your Learning Plan
             </h2>
@@ -181,50 +187,56 @@ const Bootcamp = () => {
             {content.plans.map((plan) => {
               const discountedPrice = getDiscountedPrice(plan.originalPrice, plan.discount);
               const hasDiscount = plan.discount.enabled;
+              const highlight = planHighlights[plan.id];
 
               return (
-                <Card key={plan.id} className="flex h-full flex-col">
-                  <CardHeader className="space-y-3">
+                <Card key={plan.id} className="flex h-full flex-col border-border/80 bg-card/90">
+                  <CardHeader className="space-y-3 p-5 pb-3">
+                    {highlight ? (
+                      <p className="w-fit rounded-md bg-primary/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                        {highlight}
+                      </p>
+                    ) : null}
                     <div>
                       <CardTitle className="text-xl">{plan.title}</CardTitle>
                       <CardDescription className="mt-1">{plan.coverage}</CardDescription>
                     </div>
-                    <p className="text-sm leading-6 text-muted-foreground">{plan.description}</p>
-                    <div className="border-y border-border py-4">
+                    <p className="min-h-[72px] text-sm leading-6 text-muted-foreground">{plan.description}</p>
+                    <div className="pt-1">
+                      <p className="text-3xl font-semibold tracking-tight text-foreground">
+                        {formatUsd(plan.originalPrice)}
+                      </p>
                       {hasDiscount ? (
-                        <>
-                          <p className="text-sm text-muted-foreground line-through">
+                        <div className="mt-3 flex items-center justify-between gap-3 rounded-md bg-primary/10 px-3 py-2">
+                          <span className="text-sm text-muted-foreground line-through">
                             {formatUsd(plan.originalPrice)}
-                          </p>
-                          <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-                            {formatUsd(discountedPrice)}
-                          </p>
-                          <p className="mt-2 text-xs font-medium text-primary">
-                            {plan.discount.percentage}% off
-                            {plan.discount.title ? " — " + plan.discount.title : ""}
-                          </p>
-                          {plan.discount.expiresAt ? (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Offer ends {formatDate(plan.discount.expiresAt)}
-                            </p>
+                          </span>
+                          <span className="text-sm font-semibold text-primary">
+                            Now {formatUsd(discountedPrice)}
+                          </span>
+                          {plan.discount.title ? (
+                            <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                              {plan.discount.title}
+                            </span>
                           ) : null}
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-sm text-muted-foreground">Program price</p>
-                          <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-                            {formatUsd(plan.originalPrice)}
-                          </p>
-                        </>
-                      )}
+                        </div>
+                      ) : null}
+                      {hasDiscount && plan.discount.expiresAt ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Offer ends {formatDate(plan.discount.expiresAt)}
+                        </p>
+                      ) : null}
                     </div>
                   </CardHeader>
-                  <CardContent className="flex flex-1 flex-col space-y-5">
+                  <CardContent className="flex flex-1 flex-col space-y-5 p-5 pt-3">
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground">Why Choose This Plan</h3>
+                      <h3 className="text-sm font-semibold text-foreground">Why Choose This Plan?</h3>
                       <ul className="mt-3 space-y-2 text-sm leading-5 text-muted-foreground">
                         {plan.whyChoose.map((item) => (
-                          <li key={item}>{item}</li>
+                          <li key={item} className="flex gap-2">
+                            <CircleCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                            <span>{item}</span>
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -232,12 +244,15 @@ const Bootcamp = () => {
                       <h3 className="text-sm font-semibold text-foreground">What&apos;s Included</h3>
                       <ul className="mt-3 space-y-2 text-sm leading-5 text-muted-foreground">
                         {plan.included.map((item) => (
-                          <li key={item}>{item}</li>
+                          <li key={item} className="flex gap-2">
+                            <span className="mt-2 size-1 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                            <span>{item}</span>
+                          </li>
                         ))}
                       </ul>
                     </div>
                     {plan.showBatchInformation ? (
-                      <div className="space-y-3 border-t border-border pt-4 text-sm">
+                      <div className="space-y-3 rounded-md border border-border bg-background/30 p-3 text-sm">
                         <h3 className="font-semibold text-foreground">Batch Information</h3>
                         <dl className="space-y-2 text-muted-foreground">
                           <div className="flex justify-between gap-4">
