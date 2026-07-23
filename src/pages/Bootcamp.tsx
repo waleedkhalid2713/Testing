@@ -197,7 +197,7 @@ const Bootcamp = () => {
                           </p>
                           {plan.discount.expiresAt ? (
                             <p className="mt-1 text-xs text-muted-foreground">
-                              Offer ends {formatDate(plan.discount.expiry)}
+                              Offer ends {formatDate(plan.discount.expiresAt)}
                             </p>
                           ) : null}
                         </>
