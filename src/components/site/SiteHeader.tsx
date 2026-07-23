@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import brandLogo from "@/assets/epic-trader-logo.png";
@@ -10,6 +11,7 @@ const linkBase =
 const linkActive = "text-foreground md:text-foreground";
 
 export function SiteHeader() {
+  const navigate = useNavigate();
   const [isSignedIn, setIsSignedIn] = React.useState(false);
   const { isAdmin } = useAdmin();
 
@@ -32,11 +34,12 @@ export function SiteHeader() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     window.localStorage.removeItem("epic-trader-admin");
     window.localStorage.removeItem("epic-trader-user");
-    supabase.auth.signOut();
+    await supabase.auth.signOut();
     setIsSignedIn(false);
+    navigate("/", { replace: true });
   };
 
   return (
