@@ -100,7 +100,7 @@ const Bootcamp = () => {
             <h1 className="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
               {content.hero.heading}
             </h1>
-            <p className="mt-5 max-w-5xl text-xl leading-relaxed text-muted-foreground sm:text-2xl">
+            <p className="mt-5 max-w-5xl text-xl leading-relaxed text-muted-foreground sm:text-2xl lg:text-3xl">
               {content.hero.subtitle}
             </p>
             <p className="mt-6 max-w-4xl text-sm leading-7 text-muted-foreground sm:text-base">
@@ -231,7 +231,7 @@ const Bootcamp = () => {
                           </div>
                           <div className="flex justify-between gap-4">
                             <dt>Enrollment Deadline</dt>
-                            <dd className="text-right text-foreground">{formatDate(content.batch.deadline)}</dd>
+                            <dd className="text-right text-foreground">{formatDate(content.batch.deadlineDate)}</dd>
                           </div>
                           <div className="flex justify-between gap-4">
                             <dt>Batch Start Date</dt>
@@ -252,7 +252,7 @@ const Bootcamp = () => {
                             {plan.buttonText}
                           </Button>
                           <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">
-                            {plan.enrollmentClosedText}
+                            {plan.closedText}
                           </p>
                         </>
                       )}
