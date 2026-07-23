@@ -123,6 +123,16 @@ All colors MUST be HSL.
   h3 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
+    line-height: 1.12;
+  }
+
+  p {
+    line-height: 1.6;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
   }
 }
 
@@ -141,8 +151,8 @@ All colors MUST be HSL.
   }
 }
 
-/* Refined dark-theme preview: limited to Contact, Legal, and Forecasts. */
-:root[data-theme="refined-dark-preview"] {
+/* Shared Epic Trader dark theme used across every application route. */
+:root[data-theme="epic-dark"] {
   --background: 224 40% 7%;
   --foreground: 210 40% 98%;
   --card: 220 23% 11%;
@@ -176,14 +186,14 @@ All colors MUST be HSL.
   --shadow-button-hover: 0 10px 24px rgba(124, 58, 237, 0.26);
 }
 
-.refined-dark-preview { color: #F8FAFC; }
-.refined-dark-preview .site-header,
-.refined-dark-preview .site-footer {
+.epic-dark { color: #F8FAFC; }
+.epic-dark .site-header,
+.epic-dark .site-footer {
   background-color: #10131D;
   border-color: rgba(255, 255, 255, 0.08);
 }
-.refined-dark-preview .site-header { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02); }
-.refined-dark-preview .site-nav-link-active::after {
+.epic-dark .site-header { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.02); }
+.epic-dark .site-nav-link-active::after {
   position: absolute;
   right: 0;
   bottom: -0.65rem;
@@ -193,42 +203,42 @@ All colors MUST be HSL.
   background: linear-gradient(90deg, #7C3AED, #06B6D4);
   content: "";
 }
-.refined-dark-preview .site-footer p:first-child { color: #F8FAFC; }
-.refined-dark-preview .risk-ticker {
+.epic-dark .site-footer p:first-child { color: #F8FAFC; }
+.epic-dark .risk-ticker {
   background-color: rgba(16, 19, 29, 0.94);
   border-color: rgba(255, 255, 255, 0.08);
 }
-.refined-dark-preview .risk-ticker p {
+.epic-dark .risk-ticker p {
   color: hsl(var(--muted-foreground));
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
-.refined-dark-preview .page-hero img { opacity: 0.24; }
-.refined-dark-preview .page-hero > div:first-child > div:nth-child(2) { background-color: hsl(var(--background) / 0.82); }
-.refined-dark-preview input,
-.refined-dark-preview textarea,
-.refined-dark-preview select {
+.epic-dark .page-hero img { opacity: 0.24; }
+.epic-dark .page-hero > div:first-child > div:nth-child(2) { background-color: hsl(var(--background) / 0.82); }
+.epic-dark input,
+.epic-dark textarea,
+.epic-dark select {
   background-color: #11151E;
   border-color: rgba(255, 255, 255, 0.12);
   color: #F8FAFC;
 }
-.refined-dark-preview input::placeholder,
-.refined-dark-preview textarea::placeholder { color: #64748B; }
-.refined-dark-preview input:focus,
-.refined-dark-preview textarea:focus,
-.refined-dark-preview select:focus {
+.epic-dark input::placeholder,
+.epic-dark textarea::placeholder { color: #64748B; }
+.epic-dark input:focus,
+.epic-dark textarea:focus,
+.epic-dark select:focus {
   border-color: #A78BFA;
   box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
 }
-.refined-dark-preview .hover-glow:hover {
+.epic-dark .hover-glow:hover {
   box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
 }
 @media (prefers-reduced-motion: reduce) {
-  .refined-dark-preview *,
-  .refined-dark-preview *::before,
-  .refined-dark-preview *::after {
+  .epic-dark *,
+  .epic-dark *::before,
+  .epic-dark *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
