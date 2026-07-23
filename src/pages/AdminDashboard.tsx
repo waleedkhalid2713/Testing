@@ -33,7 +33,21 @@ type ActivityEvent = {
   visited_at: string;
 };
 
+type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  category: string;
+  message: string;
+  status: string;
+  created_at: string;
+};
+
 type Period = "7" | "30" | "90" | "all";
+type MessageStatusFilter = "all" | "Unread" | "In progress" | "Resolved";
+
+const supportStatuses = ["Unread", "In progress", "Resolved"] as const;
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat(undefined, {
@@ -80,6 +94,9 @@ const downloadCsv = (fileName: string, headers: string[], rows: Array<Array<stri
 const AdminDashboard = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  const [supportMessages, setSupportMessages] = useState<ContactMessage[]>([]);
+  const [messageStatusFilter, setMessageStatusFilter] = useState<MessageStatusFilter>("all");
+  const [updatingMessageId, setUpdatingMessageId] = useState<string | null>(null);
   const [region, setRegion] = useState("all");
   const [period, setPeriod] = useState<Period>("30");
   const [error, setError] = useState("");
@@ -96,14 +113,23 @@ const AdminDashboard = () => {
           .from("user_activity_events")
           .select("id, page, region, visited_at")
           .order("visited_at", { ascending: false }),
+        supabase
+          .from("contact_messages")
+          .select("id, name, email, subject, category, message, status, created_at")
+          .order("created_at", { ascending: false }),
       ]);
 
-      const messages = [profilesResponse.error?.message, activityResponse.error?.message].filter(Boolean);
+      const messages = [
+        profilesResponse.error?.message,
+        activityResponse.error?.message,
+        contactMessagesResponse.error?.message,
+      ].filter(Boolean);
       if (messages.length) {
         setError(messages.join(" "));
       } else {
         setProfiles(profilesResponse.data);
         setActivity(activityResponse.data);
+        setSupportMessages(contactMessagesResponse.data);
       }
 
       setLoading(false);
@@ -134,6 +160,37 @@ const AdminDashboard = () => {
     () => profiles.filter((profile) => region === "all" || profile.region === region),
     [profiles, region],
   );
+
+  const filteredSupportMessages = useMemo(
+    () =>
+      supportMessages.filter(
+        (message) => messageStatusFilter === "all" || message.status === messageStatusFilter,
+      ),
+    [messageStatusFilter, supportMessages],
+  );
+
+  const unreadSupportMessages = useMemo(
+    () => supportMessages.filter((message) => message.status === "Unread").length,
+    [supportMessages],
+  );
+
+  const updateMessageStatus = async (messageId: string, status: (typeof supportStatuses)[number]) => {
+    setUpdatingMessageId(messageId);
+    const { error: updateError } = await supabase
+      .from("contact_messages")
+      .update({ status })
+      .eq("id", messageId);
+
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      setSupportMessages((current) =>
+        current.map((message) => (message.id === messageId ? { ...message, status } : message)),
+      );
+    }
+
+    setUpdatingMessageId(null);
+  };
 
   const pageVisits = useMemo(() => {
     const counts = new Map<string, number>();
@@ -280,6 +337,90 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Support inbox</CardTitle>
+            <CardDescription>
+              Review customer messages and update their status. {unreadSupportMessages} unread message{unreadSupportMessages === 1 ? "" : "s"}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <label className="block max-w-xs space-y-2 text-sm font-medium">
+              Message status
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={messageStatusFilter}
+                onChange={(event) => setMessageStatusFilter(event.target.value as MessageStatusFilter)}
+              >
+                <option value="all">All messages</option>
+                {supportStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="overflow-auto">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="py-3 pr-4">Received</th>
+                    <th className="py-3 pr-4">Sender</th>
+                    <th className="py-3 pr-4">Message</th>
+                    <th className="py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSupportMessages.length ? (
+                    filteredSupportMessages.map((message) => (
+                      <tr key={message.id} className="border-b align-top">
+                        <td className="py-3 pr-4 text-muted-foreground">{formatDate(message.created_at)}</td>
+                        <td className="py-3 pr-4">
+                          <p className="font-medium">{message.name}</p>
+                          <a className="text-muted-foreground hover:text-primary hover:underline" href={`mailto:${message.email}`}>
+                            {message.email}
+                          </a>
+                        </td>
+                        <td className="max-w-md py-3 pr-4">
+                          <p className="font-medium">{message.subject}</p>
+                          <p className="mt-1 text-xs font-medium uppercase tracking-wide text-primary">{message.category}</p>
+                          <p className="mt-2 whitespace-pre-wrap text-muted-foreground">{message.message}</p>
+                        </td>
+                        <td className="py-3">
+                          <select
+                            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                            value={message.status}
+                            disabled={updatingMessageId === message.id}
+                            onChange={(event) =>
+                              void updateMessageStatus(
+                                message.id,
+                                event.target.value as (typeof supportStatuses)[number],
+                              )
+                            }
+                          >
+                            {supportStatuses.map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="py-5 text-muted-foreground">
+                        No support messages match this filter.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
