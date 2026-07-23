@@ -10,6 +10,7 @@ const INTRO_DISMISSED_KEY = "epic-trader-intro-dismissed";
 
 export function SiteLayout() {
   const location = useLocation();
+  const isThemePreviewRoute = ["/contact", "/legal", "/forecast"].includes(location.pathname);
   const [showIntro, setShowIntro] = React.useState(
     () => window.sessionStorage.getItem(INTRO_DISMISSED_KEY) !== "true",
   );
@@ -44,8 +45,22 @@ export function SiteLayout() {
     void recordPageView();
   }, [location.pathname]);
 
+  React.useEffect(() => {
+    const root = document.documentElement;
+
+    if (isThemePreviewRoute) {
+      root.dataset.theme = "refined-dark-preview";
+    } else {
+      delete root.dataset.theme;
+    }
+
+    return () => {
+      delete root.dataset.theme;
+    };
+  }, [isThemePreviewRoute]);
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className={`min-h-screen bg-background text-foreground${isThemePreviewRoute ? " refined-dark-preview" : ""}`}>
       <IntroModal isOpen={showIntro} onClose={handleCloseIntro} />
       <SiteHeader />
 
@@ -53,7 +68,7 @@ export function SiteLayout() {
         <Outlet />
       </main>
 
-      <footer className="border-t">
+      <footer className="site-footer border-t">
         <div className="container py-10">
           <div className="flex flex-col gap-2">
             <p className="text-sm font-medium">Epic Trader</p>
