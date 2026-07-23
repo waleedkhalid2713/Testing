@@ -207,15 +207,15 @@ const Bootcamp = () => {
                         {formatUsd(plan.originalPrice)}
                       </p>
                       {hasDiscount ? (
-                        <div className="mt-3 flex items-center justify-between gap-3 rounded-md bg-primary/10 px-3 py-2">
-                          <span className="text-sm text-muted-foreground line-through">
+                        <div className="mt-3 flex items-center justify-between gap-3 rounded-md bg-primary/30 px-3 py-2 ring-1 ring-primary/50">
+                          <span className="text-sm text-slate-200 line-through">
                             {formatUsd(plan.originalPrice)}
                           </span>
-                          <span className="text-sm font-semibold text-primary">
+                          <span className="text-sm font-semibold text-white">
                             Now {formatUsd(discountedPrice)}
                           </span>
                           {plan.discount.title ? (
-                            <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                            <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
                               {plan.discount.title}
                             </span>
                           ) : null}
