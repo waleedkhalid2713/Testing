@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Download, Reply } from "lucide-react";
+import { Ban, Download, Reply, Trash2 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,6 +98,8 @@ const AdminDashboard = () => {
   const [supportMessages, setSupportMessages] = useState<ContactMessage[]>([]);
   const [messageStatusFilter, setMessageStatusFilter] = useState<MessageStatusFilter>("all");
   const [updatingMessageId, setUpdatingMessageId] = useState<string | null>(null);
+  const [managingUserId, setManagingUserId] = useState<string | null>(null);
+  const [userActionMessage, setUserActionMessage] = useState("");
   const [region, setRegion] = useState("all");
   const [period, setPeriod] = useState<Period>("30");
   const [error, setError] = useState("");
@@ -217,6 +219,35 @@ const AdminDashboard = () => {
     if (message.status === "Unread") {
       void updateMessageStatus(message.id, "In progress");
     }
+  };
+
+  const manageUserAccount = async (profile: Profile, action: "block" | "delete") => {
+    const actionLabel = action === "block" ? "block" : "permanently delete";
+    const confirmed = window.confirm(
+      `Are you sure you want to ${actionLabel} ${profile.email}? This action cannot be undone for a deleted account.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setManagingUserId(profile.id);
+    setUserActionMessage("");
+
+    const { error: manageError } = await supabase.functions.invoke("manage-user-account", {
+      body: { userId: profile.id, action },
+    });
+
+    if (manageError) {
+      setUserActionMessage(manageError.message || `The user could not be ${actionLabel}.`);
+    } else if (action === "delete") {
+      setProfiles((current) => current.filter((user) => user.id !== profile.id));
+      setUserActionMessage(`${profile.email} was deleted.`);
+    } else {
+      setUserActionMessage(`${profile.email} was blocked and can no longer sign in.`);
+    }
+
+    setManagingUserId(null);
   };
 
   const pageVisits = useMemo(() => {
@@ -553,7 +584,8 @@ const AdminDashboard = () => {
               <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
                 <div className="space-y-1.5">
                   <CardTitle>Registered users</CardTitle>
-                  <CardDescription>Email, signup date, region, and forecast disclaimer acceptance.</CardDescription>
+                  <CardDescription>Email, signup date, region, forecast disclaimer acceptance, and account controls.</CardDescription>
+                  {userActionMessage ? <p className="text-sm text-muted-foreground">{userActionMessage}</p> : null}
                 </div>
                 <Button
                   type="button"
@@ -568,13 +600,14 @@ const AdminDashboard = () => {
                 </Button>
               </CardHeader>
               <CardContent className="overflow-auto">
-                <table className="w-full min-w-[560px] text-sm">
+                <table className="w-full min-w-[760px] text-sm">
                   <thead>
                     <tr className="border-b text-left">
                       <th className="py-3 pr-4">Email of User</th>
                       <th className="py-3 pr-4">Date of Incorporation</th>
                       <th className="py-3 pr-4">Region</th>
-                      <th className="py-3">Forecast Disclaimer</th>
+                      <th className="py-3 pr-4">Forecast Disclaimer</th>
+                      <th className="py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -584,12 +617,36 @@ const AdminDashboard = () => {
                           <td className="py-3 pr-4">{profile.email}</td>
                           <td className="py-3 pr-4">{formatDate(profile.incorporated_at)}</td>
                           <td className="py-3 pr-4">{profile.region}</td>
-                          <td className="py-3">{profile.forecast_disclaimer_accepted_at ? `Accepted ${formatDate(profile.forecast_disclaimer_accepted_at)}` : "Not accepted"}</td>
+                          <td className="py-3 pr-4">{profile.forecast_disclaimer_accepted_at ? `Accepted ${formatDate(profile.forecast_disclaimer_accepted_at)}` : "Not accepted"}</td>
+                          <td className="py-3 text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={managingUserId === profile.id}
+                                onClick={() => void manageUserAccount(profile, "block")}
+                              >
+                                <Ban className="size-4" />
+                                Block
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="destructive"
+                                disabled={managingUserId === profile.id}
+                                onClick={() => void manageUserAccount(profile, "delete")}
+                              >
+                                <Trash2 className="size-4" />
+                                Delete
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={4} className="py-5 text-muted-foreground">
+                        <td colSpan={5} className="py-5 text-muted-foreground">
                           No registered users yet.
                         </td>
                       </tr>
