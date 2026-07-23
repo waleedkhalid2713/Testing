@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { BookOpen, Brain, Building2, GitBranch, Handshake, LineChart, MessageCircle, ShieldCheck } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,17 @@ const getEnrollmentPath = (plan: BootcampPlan) => {
 
   return "/contact?" + searchParams.toString();
 };
+
+const learningBenefits = [
+  { label: "Structured ICT Curriculum", Icon: BookOpen },
+  { label: "Step-by-Step Learning Roadmap", Icon: GitBranch },
+  { label: "Institutional Trading Concepts", Icon: Building2 },
+  { label: "Practical Market Analysis", Icon: LineChart },
+  { label: "Professional Risk Management", Icon: ShieldCheck },
+  { label: "Trading Psychology", Icon: Brain },
+  { label: "Live Discord Learning", Icon: MessageCircle },
+  { label: "Continuous Mentorship & Support", Icon: Handshake },
+];
 
 const Bootcamp = () => {
   const [content, setContent] = useState<BootcampContent>(DEFAULT_BOOTCAMP_CONTENT);
@@ -273,19 +285,13 @@ const Bootcamp = () => {
               Why Learn with Epic Trader?
             </h2>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              "Structured ICT Curriculum",
-              "Step-by-Step Learning Roadmap",
-              "Institutional Trading Concepts",
-              "Practical Market Analysis",
-              "Professional Risk Management",
-              "Trading Psychology",
-              "Live Discord Learning",
-              "Continuous Mentorship & Support",
-            ].map((item) => (
-              <Card key={item}>
-                <CardContent className="p-4 text-sm font-medium leading-6 text-foreground">{item}</CardContent>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+            {learningBenefits.map(({ label, Icon }) => (
+              <Card key={label} className="h-full border-border/80 bg-card/85">
+                <CardContent className="flex min-h-28 flex-col items-center justify-center gap-3 p-3 text-center">
+                  <Icon className="size-5 text-primary" aria-hidden="true" />
+                  <p className="text-xs font-medium leading-5 text-foreground">{label}</p>
+                </CardContent>
               </Card>
             ))}
           </div>
