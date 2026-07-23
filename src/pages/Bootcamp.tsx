@@ -1,98 +1,368 @@
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-import { PageHero } from "@/components/site/PageHero";
-import { Reveal } from "@/components/site/Reveal";
 import heroImage from "@/assets/module-bootcamp.jpg";
+import {
+  DEFAULT_BOOTCAMP_CONTENT,
+  formatUsd,
+  getDiscountedPrice,
+  normalizeBootcampContent,
+  type BootcampContent,
+  type BootcampPlan,
+} from "@/lib/bootcampContent";
+import { supabase } from "@/integrations/supabase/client";
+
+const formatDate = (value: string) => {
+  if (!value) {
+    return "To be announced";
+  }
+
+  const date = new Date(value + "T00:00:00");
+  return Number.isNaN(date.getTime())
+    ? "To be announced"
+    : new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
+};
+
+const getEnrollmentPath = (plan: BootcampPlan) => {
+  const searchParams = new URLSearchParams({
+    category: "Bootcamp",
+    subject: "Bootcamp enrollment: " + plan.title + " (" + plan.coverage + ")",
+    enrollmentPlan: plan.id,
+    plan: plan.title + " — " + plan.coverage,
+  });
+
+  return "/contact?" + searchParams.toString();
+};
 
 const Bootcamp = () => {
+  const [content, setContent] = useState<BootcampContent>(DEFAULT_BOOTCAMP_CONTENT);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadContent = async () => {
+      const { data } = await supabase
+        .from("bootcamp_content")
+        .select("content")
+        .eq("id", "default")
+        .maybeSingle();
+
+      if (isMounted && data?.content) {
+        setContent(normalizeBootcampContent(data.content));
+      }
+    };
+
+    void loadContent();
+
+    const channel = supabase
+      .channel("bootcamp-content")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bootcamp_content", filter: "id=eq.default" },
+        (payload) => {
+          const nextContent =
+            payload.new && typeof payload.new === "object"
+              ? (payload.new as { content?: unknown }).content
+              : undefined;
+
+          if (nextContent) {
+            setContent(normalizeBootcampContent(nextContent));
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const primaryPlan = useMemo(
+    () => content.plans.find((plan) => plan.enrollmentOpen) ?? content.plans[0],
+    [content.plans],
+  );
+
   return (
     <div>
-      <PageHero
-        title="Student Bootcamp"
-        subtitle="A cohort-based program built around preparation, disciplined execution, and risk-first decision making."
-        imageSrc={heroImage}
-        imageAlt="Trading mentor reviewing charts in a modern office"
-      />
-
-      <div className="container py-12">
-        <section className="grid gap-6 lg:grid-cols-12">
-          <div className="space-y-6 lg:col-span-7">
-            <Reveal>
-              <Card className="hover-glow">
-              <CardHeader>
-                <CardTitle>Overview</CardTitle>
-                <CardDescription>What the program is designed to change.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <p>
-                  You’ll learn a repeatable process: preparation, execution, review, and risk control—across Forex, Crypto,
-                  Stocks, Indices, and Commodities.
-                </p>
-                <ul className="list-disc space-y-2 pl-5">
-                  <li>Risk-first decision making</li>
-                  <li>Key levels + invalidation logic</li>
-                  <li>Review routines to reduce impulsive trading</li>
-                </ul>
-              </CardContent>
-              </Card>
-            </Reveal>
-
-            <Reveal delayMs={120}>
-              <Card className="hover-glow">
-              <CardHeader>
-                <CardTitle>Curriculum modules</CardTitle>
-                <CardDescription>Sample structure (editable in admin later).</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
-                {[
-                  "Market structure & bias",
-                  "News & volatility planning",
-                  "Entries, exits, invalidation",
-                  "Position sizing & risk caps",
-                  "Journaling & review",
-                  "Rules-based execution",
-                ].map((m) => (
-                  <div key={m} className="rounded-md border bg-card/40 px-3 py-2">
-                    {m}
-                  </div>
-                ))}
-              </CardContent>
-              </Card>
-            </Reveal>
+      <section className="relative overflow-hidden border-b border-border">
+        <img
+          src={heroImage}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-20"
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/70" />
+        <div className="container relative py-14 sm:py-16 lg:py-20">
+          <div className="max-w-5xl">
+            <h1 className="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+              {content.hero.heading}
+            </h1>
+            <p className="mt-5 max-w-5xl text-xl leading-relaxed text-muted-foreground sm:text-2xl">
+              {content.hero.subtitle}
+            </p>
+            <p className="mt-6 max-w-4xl text-sm leading-7 text-muted-foreground sm:text-base">
+              {content.hero.description}
+            </p>
+            <div className="mt-8 max-w-4xl border-l-2 border-primary pl-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary">
+                {content.hero.missionLabel}
+              </p>
+              <p className="mt-2 text-base leading-7 text-foreground sm:text-lg">
+                {content.hero.missionStatement}
+              </p>
+            </div>
           </div>
+        </div>
+      </section>
 
-          <aside className="space-y-6 lg:col-span-5">
-            <Reveal delayMs={200}>
-              <Card className="hover-glow">
-              <CardHeader>
-                <div className="flex items-center justify-between gap-4">
-                  <CardTitle>Enrollment</CardTitle>
-                  <Badge variant="secondary">Limited-time</Badge>
-                </div>
-                <CardDescription>Minimal discount UI (no strikethrough).</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="rounded-md border bg-card/40 p-4">
-                  <p className="text-sm text-muted-foreground">Current price</p>
-                  <p className="mt-1 text-3xl font-semibold tracking-tight">$499</p>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button className="flex-1">Enroll now</Button>
-                  <Button className="flex-1" variant="outline" asChild>
-                    <a href="/contact">Apply / Book a Call</a>
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Educational content only. Not financial advice. Trading involves risk.
-                </p>
-              </CardContent>
+      <main className="container space-y-12 py-10 sm:space-y-14 sm:py-12">
+        <section aria-labelledby="roadmap-heading">
+          <div className="mb-5 max-w-2xl">
+            <h2 id="roadmap-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
+              Program Roadmap
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              A progression from foundational ICT knowledge to structured implementation.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {content.roadmap.map((level) => (
+              <Card key={level.id} className="flex h-full flex-col">
+                <CardHeader className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                    Level {level.levelNumber}
+                  </p>
+                  <CardTitle className="text-xl">{level.title}</CardTitle>
+                  <CardDescription>{level.subtitle}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-1 flex-col">
+                  <p className="text-sm leading-6 text-muted-foreground">{level.description}</p>
+                  <ul className="mt-5 space-y-2 border-t border-border pt-4 text-sm text-foreground">
+                    {level.modules.map((module) => (
+                      <li key={module} className="leading-5">
+                        {module}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
               </Card>
-            </Reveal>
-          </aside>
+            ))}
+          </div>
         </section>
-      </div>
+
+        <section aria-labelledby="pricing-heading">
+          <div className="mb-5 max-w-2xl">
+            <h2 id="pricing-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
+              Choose Your Learning Plan
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Select the path that aligns with your goals and learning preferences.
+            </p>
+          </div>
+          <div className="grid items-stretch gap-5 lg:grid-cols-3">
+            {content.plans.map((plan) => {
+              const discountedPrice = getDiscountedPrice(plan.originalPrice, plan.discount);
+              const hasDiscount = plan.discount.enabled;
+
+              return (
+                <Card key={plan.id} className="flex h-full flex-col">
+                  <CardHeader className="space-y-3">
+                    <div>
+                      <CardTitle className="text-xl">{plan.title}</CardTitle>
+                      <CardDescription className="mt-1">{plan.coverage}</CardDescription>
+                    </div>
+                    <p className="text-sm leading-6 text-muted-foreground">{plan.description}</p>
+                    <div className="border-y border-border py-4">
+                      {hasDiscount ? (
+                        <>
+                          <p className="text-sm text-muted-foreground line-through">
+                            {formatUsd(plan.originalPrice)}
+                          </p>
+                          <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+                            {formatUsd(discountedPrice)}
+                          </p>
+                          <p className="mt-2 text-xs font-medium text-primary">
+                            {plan.discount.percentage}% off
+                            {plan.discount.title ? " — " + plan.discount.title : ""}
+                          </p>
+                          {plan.discount.expiry ? (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Offer ends {formatDate(plan.discount.expiry)}
+                            </p>
+                          ) : null}
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">Program price</p>
+                          <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
+                            {formatUsd(plan.originalPrice)}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex flex-1 flex-col space-y-5">
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Why Choose This Plan</h3>
+                      <ul className="mt-3 space-y-2 text-sm leading-5 text-muted-foreground">
+                        {plan.whyChoose.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">What&apos;s Included</h3>
+                      <ul className="mt-3 space-y-2 text-sm leading-5 text-muted-foreground">
+                        {plan.included.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    {plan.showBatchInformation ? (
+                      <div className="space-y-3 border-t border-border pt-4 text-sm">
+                        <h3 className="font-semibold text-foreground">Batch Information</h3>
+                        <dl className="space-y-2 text-muted-foreground">
+                          <div className="flex justify-between gap-4">
+                            <dt>Enrollment Opening</dt>
+                            <dd className="text-right text-foreground">{formatDate(content.batch.openingDate)}</dd>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <dt>Enrollment Deadline</dt>
+                            <dd className="text-right text-foreground">{formatDate(content.batch.deadline)}</dd>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <dt>Batch Start Date</dt>
+                            <dd className="text-right text-foreground">{formatDate(content.batch.startDate)}</dd>
+                          </div>
+                        </dl>
+                        <p className="leading-5 text-muted-foreground">{content.batch.discordNote}</p>
+                      </div>
+                    ) : null}
+                    <div className="mt-auto pt-1">
+                      {plan.enrollmentOpen ? (
+                        <Button className="w-full" asChild>
+                          <Link to={getEnrollmentPath(plan)}>{plan.buttonText}</Link>
+                        </Button>
+                      ) : (
+                        <>
+                          <Button className="w-full" disabled>
+                            {plan.buttonText}
+                          </Button>
+                          <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">
+                            {plan.enrollmentClosedText}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+
+        <section aria-labelledby="why-heading">
+          <div className="mb-5 max-w-2xl">
+            <h2 id="why-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
+              Why Learn with Epic Trader?
+            </h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              "Structured ICT Curriculum",
+              "Step-by-Step Learning Roadmap",
+              "Institutional Trading Concepts",
+              "Practical Market Analysis",
+              "Professional Risk Management",
+              "Trading Psychology",
+              "Live Discord Learning",
+              "Continuous Mentorship & Support",
+            ].map((item) => (
+              <Card key={item}>
+                <CardContent className="p-4 text-sm font-medium leading-6 text-foreground">{item}</CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-2" aria-labelledby="outcomes-heading">
+          <div>
+            <h2 id="outcomes-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
+              What You Will Learn to Do
+            </h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+              Practical skills that support a disciplined and repeatable trading process.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              "Understand institutional market structure",
+              "Identify liquidity",
+              "Read algorithmic price delivery",
+              "Build your own framework",
+              "Execute with discipline",
+              "Professional risk management",
+              "Improve emotional control",
+              "Review trading performance",
+            ].map((item) => (
+              <div key={item} className="rounded-lg border border-border bg-card px-4 py-3 text-sm leading-5 text-foreground">
+                {item}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="max-w-4xl" aria-labelledby="faq-heading">
+          <h2 id="faq-heading" className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
+            Frequently Asked Questions
+          </h2>
+          <Accordion type="single" collapsible className="mt-4 rounded-xl border border-border bg-card px-4">
+            <AccordionItem value="experience">
+              <AccordionTrigger>Do I need previous trading experience?</AccordionTrigger>
+              <AccordionContent>
+                No. The program starts with foundational concepts and progresses through structured implementation.
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="classes">
+              <AccordionTrigger>Where are live classes conducted?</AccordionTrigger>
+              <AccordionContent>
+                Live sessions are conducted through the official Epic Trader Discord server.
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="recordings">
+              <AccordionTrigger>Will recordings be available?</AccordionTrigger>
+              <AccordionContent>
+                Batch Learning Program members receive access to session recordings as included in their plan.
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="batch">
+              <AccordionTrigger>When does the next batch begin?</AccordionTrigger>
+              <AccordionContent>
+                The latest enrollment and batch dates are shown in the Batch Learning Program information above.
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card px-5 py-8 text-center shadow-card sm:px-8">
+          <h2 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">{content.finalCta.heading}</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+            {content.finalCta.text}
+          </p>
+          <div className="mt-6">
+            {primaryPlan?.enrollmentOpen ? (
+              <Button asChild>
+                <Link to={getEnrollmentPath(primaryPlan)}>{content.finalCta.buttonText}</Link>
+              </Button>
+            ) : (
+              <Button disabled>{content.finalCta.buttonText}</Button>
+            )}
+          </div>
+        </section>
+      </main>
     </div>
   );
 };
