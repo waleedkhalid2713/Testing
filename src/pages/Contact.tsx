@@ -41,11 +41,19 @@ const categories = [
   "Other",
 ] as const;
 
+type ContactCategory = (typeof categories)[number];
+
+const strategyCallUrl =
+  import.meta.env.VITE_STRATEGY_CALL_URL?.trim() ||
+  "mailto:epictrader.support@gmail.com?subject=Strategy%20Call%20Request&body=Hello%20Epic%20Trader%20team%2C%0A%0AI%20would%20like%20to%20book%20a%20strategy%20call.%0A%0AName%3A%0APreferred%20date%20and%20time%3A%0ATimezone%3A";
+
 const contactSchema = z.object({
   name: z.string().trim().min(2, "Enter your full name.").max(100, "Name must be 100 characters or less."),
   email: z.string().trim().email("Enter a valid email address.").max(255),
   subject: z.string().trim().min(3, "Enter a subject.").max(150, "Subject must be 150 characters or less."),
-  category: z.enum(categories, { required_error: "Select a support category." }),
+  category: z.string().trim().refine((value) => categories.includes(value as ContactCategory), {
+    message: "Select a support category.",
+  }),
   message: z.string().trim().min(10, "Please provide at least 10 characters.").max(5000, "Message is too long."),
 });
 
@@ -96,6 +104,7 @@ const Contact = () => {
       name: "",
       email: "",
       subject: "",
+      category: "",
       message: "",
     },
     mode: "onBlur",
@@ -215,7 +224,7 @@ const Contact = () => {
                       </label>
                       <input type="hidden" {...register("category")} />
                       <Select
-                        value={selectedCategory}
+                        value={selectedCategory || undefined}
                         onValueChange={(value) =>
                           setValue("category", value as ContactValues["category"], {
                             shouldDirty: true,
@@ -304,14 +313,15 @@ const Contact = () => {
                   ))}
                 </dl>
 
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full rounded-full"
-                  onClick={() => toast.info("Strategy call booking will be available soon.")}
-                >
-                  Book a Strategy Call
-                  <ArrowUpRight className="size-4" />
+                <Button asChild type="button" variant="secondary" className="w-full rounded-full">
+                  <a
+                    href={strategyCallUrl}
+                    target={strategyCallUrl.startsWith("http") ? "_blank" : undefined}
+                    rel={strategyCallUrl.startsWith("http") ? "noreferrer" : undefined}
+                  >
+                    Book a Strategy Call
+                    <ArrowUpRight className="size-4" />
+                  </a>
                 </Button>
               </CardContent>
             </Card>
