@@ -113,25 +113,23 @@ const Contact = () => {
   const selectedCategory = watch("category");
 
   const submitMessage = async (values: ContactValues) => {
-    const { data: savedMessage, error } = await supabase
-      .from("contact_messages")
-      .insert({
-        name: values.name,
-        email: values.email,
-        subject: values.subject,
-        category: values.category,
-        message: values.message,
-      })
-      .select("id")
-      .single();
+    const messageId = crypto.randomUUID();
+    const { error } = await supabase.from("contact_messages").insert({
+      id: messageId,
+      name: values.name,
+      email: values.email,
+      subject: values.subject,
+      category: values.category,
+      message: values.message,
+    });
 
-    if (error || !savedMessage) {
+    if (error) {
       toast.error("We could not send your message. Please try again or email support directly.");
       return;
     }
 
     const { error: notificationError } = await supabase.functions.invoke("notify-support-message", {
-      body: { messageId: savedMessage.id },
+      body: { messageId },
     });
 
     if (notificationError) {
