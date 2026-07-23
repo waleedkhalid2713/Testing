@@ -45,6 +45,7 @@ export function SiteHeader() {
     window.localStorage.removeItem("epic-trader-user");
     await supabase.auth.signOut();
     setIsSignedIn(false);
+    setGreetingName("Dear User");
     navigate("/", { replace: true });
   };
 
