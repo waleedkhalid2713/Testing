@@ -14,7 +14,8 @@ export type ForecastDraft = {
   stop: number;
   targets: Array<number | null>;
   sourceType: "screenshot" | "live_chart";
-  exchange: string;
+  tradingViewSymbol: string;
+  loadedTradingViewSymbol: string;
   timeframe: string;
   hasPreTradeEvidence: boolean;
   expectedPnl: number | null;
@@ -60,14 +61,38 @@ export function validateForecastDraft(draft: ForecastDraft) {
   if (draft.sourceType === "screenshot" && !draft.hasPreTradeEvidence) {
     errors.push("Screenshot forecasts require pre-trade evidence.");
   }
-  if (draft.sourceType === "live_chart" && (!draft.exchange.trim() || !draft.timeframe.trim())) {
-    errors.push("Live-chart forecasts require an exchange and timeframe.");
+  if (draft.sourceType === "live_chart") {
+    const resolved = resolveTradingViewSymbol(draft.tradingViewSymbol);
+    if (resolved.ok === false) errors.push(resolved.error);
+    else if (resolved.symbol !== draft.loadedTradingViewSymbol) {
+      errors.push("Load the confirmed TradingView symbol before saving.");
+    }
+    if (!draft.timeframe.trim()) errors.push("Live-chart forecasts require a timeframe.");
   }
   return errors;
 }
 
-export function tradingViewSymbol(exchange: string, symbol: string) {
-  const cleanSymbol = symbol.replace(/\//g, "").replace(/-PERP$/i, "PERP").trim().toUpperCase();
-  const cleanExchange = exchange.replace(/[^a-z0-9_-]/gi, "").toUpperCase();
-  return cleanExchange ? `${cleanExchange}:${cleanSymbol}` : cleanSymbol;
+export type ResolvedTradingViewSymbol =
+  | { ok: true; symbol: string; exchange: string; instrument: string }
+  | { ok: false; error: string };
+
+export function resolveTradingViewSymbol(value: string): ResolvedTradingViewSymbol {
+  const trimmed = value.trim();
+  if (trimmed.length > 120) return { ok: false, error: "TradingView Symbol must be 120 characters or fewer." };
+  const separator = trimmed.indexOf(":");
+  if (separator < 0) return { ok: false, error: "TradingView Symbol must use the EXCHANGE:INSTRUMENT format." };
+  if (trimmed.indexOf(":", separator + 1) >= 0) return { ok: false, error: "TradingView Symbol must contain exactly one colon." };
+  const exchange = trimmed.slice(0, separator).trim().toUpperCase();
+  const instrument = trimmed.slice(separator + 1).trim();
+  if (!exchange) return { ok: false, error: "TradingView Symbol requires a non-empty exchange." };
+  if (!instrument) return { ok: false, error: "TradingView Symbol requires a non-empty instrument." };
+  if (!/^[A-Z0-9._-]+$/.test(exchange)) return { ok: false, error: "TradingView exchange contains unsupported characters." };
+  if (!/^[A-Za-z0-9._!/-]+$/.test(instrument)) return { ok: false, error: "TradingView instrument contains unsupported characters." };
+  return { ok: true, symbol: `${exchange}:${instrument}`, exchange, instrument };
+}
+
+export function isSuspiciousLegacyTradingViewSymbol(symbol: string) {
+  const resolved = resolveTradingViewSymbol(symbol);
+  if (!resolved.ok) return true;
+  return resolved.exchange === "OANDA" && resolved.instrument.endsWith("!");
 }

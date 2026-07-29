@@ -12,6 +12,8 @@ No TradingView npm package was previously installed. The implementation uses Tra
 
 Only reproducible widget configuration (`provider`, application-selected symbol, exchange, timeframe, timestamp, and `containsDrawings: false`) is saved as `chart_metadata`. Visual evidence uses the existing supported image upload workflow. A future licensed TradingView Advanced Charts / Trading Platform integration can add official save/load or screenshot APIs if the license and datafeed permit them.
 
+The authoritative chart identifier is an administrator-confirmed complete `EXCHANGE:INSTRUMENT` value stored in `tradingview_symbol`. The application validates only its local structure and never claims that a correctly formatted identifier is available on TradingView. TradingView's native iframe search remains enabled for discovery, but selections made inside the cross-origin iframe are not read back; the administrator must confirm the complete value and select **Load Chart** before saving. Legacy `exchange` values remain for compatibility and are not silently rewritten.
+
 Official references:
 
 - https://www.tradingview.com/widget-docs/widgets/charts/advanced-chart/
