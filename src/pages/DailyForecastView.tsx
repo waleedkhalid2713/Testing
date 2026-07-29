@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHero } from "@/components/site/PageHero";
+import { ForecastLiveMarketSection } from "@/components/forecast/ForecastLiveMarketSection";
 import heroImage from "@/assets/module-forecast-daily.jpg";
 import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +14,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Instrument = Tables<"trading_instruments">;
 type Forecast = Tables<"trading_forecasts">;
-type ForecastWithInstrument = Forecast & { instrument: Instrument | undefined; imageUrl: string; resultImageUrl: string | null };
+type ForecastWithInstrument = Forecast & { instrument: Instrument | undefined; imageUrl: string | null; resultImageUrl: string | null };
 type ForecastAccess = "loading" | "sign-in" | "needs-acceptance" | "granted";
 
 const resultVariant = (status: string) => {
@@ -23,6 +24,15 @@ const resultVariant = (status: string) => {
 };
 
 const numberFormat = new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 });
+const timeframeLabels: Record<string, string> = {
+  "1": "1 minute",
+  "5": "5 minutes",
+  "15": "15 minutes",
+  "60": "1 hour",
+  "240": "4 hours",
+  D: "Daily",
+  W: "Weekly",
+};
 
 const DailyForecastView = () => {
   const [instruments, setInstruments] = useState<Instrument[]>([]);
@@ -139,7 +149,9 @@ const DailyForecastView = () => {
       forecasts.map((forecast) => ({
         ...forecast,
         instrument: instruments.find((instrument) => instrument.id === forecast.instrument_id),
-        imageUrl: supabase.storage.from("forecast-images").getPublicUrl(forecast.image_path).data.publicUrl,
+        imageUrl: forecast.image_path
+          ? supabase.storage.from("forecast-images").getPublicUrl(forecast.image_path).data.publicUrl
+          : null,
         resultImageUrl: forecast.result_image_path
           ? supabase.storage.from("forecast-images").getPublicUrl(forecast.result_image_path).data.publicUrl
           : null,
@@ -309,14 +321,21 @@ const DailyForecastView = () => {
                   </div>
 
                   {forecast.take_profit_2 ? <p className="text-sm"><span className="text-muted-foreground">Take profit 2: </span><span className="font-semibold">{numberFormat.format(forecast.take_profit_2)}</span></p> : null}
+                  {forecast.take_profit_3 ? <p className="text-sm"><span className="text-muted-foreground">Take profit 3: </span><span className="font-semibold">{numberFormat.format(forecast.take_profit_3)}</span></p> : null}
+                  <div className="flex flex-wrap gap-2 text-xs"><Badge variant="outline">{forecast.source_type === "live_chart" ? "Live chart setup" : "Screenshot setup"}</Badge>{forecast.tradingview_symbol ? <Badge variant="outline">{forecast.tradingview_symbol}</Badge> : forecast.exchange ? <Badge variant="outline">Legacy exchange: {forecast.exchange}</Badge> : null}{forecast.timeframe ? <Badge variant="outline">{timeframeLabels[forecast.timeframe] ?? forecast.timeframe}</Badge> : null}</div>
+                  {forecast.execution_price !== forecast.stop_loss ? <p className="text-sm"><span className="text-muted-foreground">Risk / reward: </span><span className="font-semibold">1 : {(Math.abs(forecast.take_profit_1 - forecast.execution_price) / Math.abs(forecast.execution_price - forecast.stop_loss)).toFixed(2)}</span></p> : null}
+                  {forecast.expected_pnl !== null ? <p className="text-sm"><span className="text-muted-foreground">Expected P&amp;L: </span><span className="font-semibold">{numberFormat.format(forecast.expected_pnl)}</span></p> : null}
                   <p className="text-sm text-muted-foreground">Published for {new Date(forecast.trade_date + "T00:00:00").toLocaleDateString()}.</p>
+                  {forecast.rationale ? <div><p className="text-sm font-medium">Forecast rationale</p><p className="text-sm text-muted-foreground">{forecast.rationale}</p></div> : null}
                   {forecast.notes ? <p className="text-sm text-muted-foreground">{forecast.notes}</p> : null}
+                  {forecast.status !== "active" && (forecast.result_notes || forecast.result_pnl !== null || forecast.result_pnl_percent !== null) ? <div className="rounded-lg border p-3"><p className="font-medium">Result</p>{forecast.result_pnl !== null ? <p className="text-sm">Realized P&amp;L: {numberFormat.format(forecast.result_pnl)}</p> : null}{forecast.result_pnl_percent !== null ? <p className="text-sm">Realized return: {numberFormat.format(forecast.result_pnl_percent)}%</p> : null}{forecast.result_notes ? <p className="mt-2 text-sm text-muted-foreground">{forecast.result_notes}</p> : null}</div> : null}
                 </CardContent>
                 <div className="p-6 pt-0 lg:pt-6">
-                  <button type="button" className="block w-full overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={() => { setSelectedImageType("setup"); setSelectedScreenshot(forecast); }} aria-label={`Open ${forecast.instrument?.symbol ?? "trade"} setup screenshot`}>
+                  {forecast.imageUrl ? <button type="button" className="block w-full overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={() => { setSelectedImageType("setup"); setSelectedScreenshot(forecast); }} aria-label={`Open ${forecast.instrument?.symbol ?? "trade"} setup screenshot`}>
                     <img src={forecast.imageUrl} alt={`${forecast.instrument?.symbol ?? "Trade"} TradingView setup`} className="h-72 w-full object-cover transition-transform hover:scale-[1.02]" loading="lazy" />
-                  </button>
-                  <p className="mt-2 text-center text-xs text-muted-foreground">Click the screenshot to enlarge it.</p>
+                  </button> : <div className="flex h-72 items-center justify-center rounded-xl border border-dashed px-6 text-center text-sm text-muted-foreground">No pre-trade image was attached. The saved live-chart symbol, exchange, and timeframe are shown with the forecast.</div>}
+                  {forecast.imageUrl ? <p className="mt-2 text-center text-xs text-muted-foreground">Pre-trade evidence. Click to enlarge it.</p> : null}
+                  <ForecastLiveMarketSection instrumentCode={forecast.instrument?.symbol ?? ""} storedSymbol={forecast.tradingview_symbol} timeframe={forecast.timeframe} status={forecast.status} />
                   {forecast.resultImageUrl ? (
                     <div className="mt-5 border-t pt-5">
                       <p className="mb-2 text-sm font-medium">Result evidence</p>
@@ -343,7 +362,7 @@ const DailyForecastView = () => {
               {selectedScreenshot?.instrument ? `${selectedScreenshot.instrument.market_type} · ${selectedScreenshot.instrument.sub_market} · ${selectedScreenshot.instrument.name}` : "Published forecast image"}
             </DialogDescription>
           </DialogHeader>
-          {selectedScreenshot ? <img src={selectedImageType === "result" ? selectedScreenshot.resultImageUrl ?? selectedScreenshot.imageUrl : selectedScreenshot.imageUrl} alt={`${selectedScreenshot.instrument?.symbol ?? "Trade"} ${selectedImageType === "result" ? "result screenshot" : "TradingView setup"}`} className="max-h-[70vh] w-full rounded-lg object-contain" /> : null}
+          {selectedScreenshot ? <img src={(selectedImageType === "result" ? selectedScreenshot.resultImageUrl : selectedScreenshot.imageUrl) ?? ""} alt={`${selectedScreenshot.instrument?.symbol ?? "Trade"} ${selectedImageType === "result" ? "result screenshot" : "TradingView setup"}`} className="max-h-[70vh] w-full rounded-lg object-contain" /> : null}
         </DialogContent>
       </Dialog>
         </>
