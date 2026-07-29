@@ -1,644 +1,169 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHero } from "@/components/site/PageHero";
-import { Reveal } from "@/components/site/Reveal";
+import { TradingViewChart } from "@/components/forecast/TradingViewChart";
 import heroImage from "@/assets/module-forecast-daily.jpg";
 import { compressForecastImage, fileToDataUrl } from "@/lib/compressForecastImage";
+import { calculateTradeMetrics, getTradeWarnings, validateForecastDraft, type TradeDirection } from "@/lib/tradeForecast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Instrument = Tables<"trading_instruments">;
 type Forecast = Tables<"trading_forecasts">;
+type SourceType = "screenshot" | "live_chart";
 type TradeStatus = "active" | "win" | "loss";
-
-type Extraction = {
-  market: string | null;
-  symbol: string | null;
-  direction: "long" | "short" | null;
-  executionPrice: number | null;
-  stopLoss: number | null;
-  takeProfit1: number | null;
-  takeProfit2: number | null;
-  status: TradeStatus;
-  notes: string;
-  confidence: "high" | "medium" | "low";
-};
-
-type FormState = {
-  instrumentId: string;
-  direction: "long" | "short";
-  executionPrice: string;
-  stopLoss: string;
-  takeProfit1: string;
-  takeProfit2: string;
-  status: TradeStatus;
-  tradeDate: string;
-  notes: string;
-};
-
+type Extraction = { market: string | null; symbol: string | null; direction: TradeDirection | null; executionPrice: number | null; stopLoss: number | null; takeProfit1: number | null; takeProfit2: number | null; status: TradeStatus; notes: string; confidence: "high" | "medium" | "low" };
+type FormState = { instrumentId: string; sourceType: SourceType; exchange: string; timeframe: string; direction: TradeDirection; executionPrice: string; stopLoss: string; takeProfit1: string; takeProfit2: string; takeProfit3: string; expectedPnl: string; status: TradeStatus; tradeDate: string; rationale: string; notes: string; resultPnl: string; resultPnlPercent: string; resultNotes: string };
 const today = () => new Date().toISOString().slice(0, 10);
-
-const emptyForm = (): FormState => ({
-  instrumentId: "",
-  direction: "long",
-  executionPrice: "",
-  stopLoss: "",
-  takeProfit1: "",
-  takeProfit2: "",
-  status: "active",
-  tradeDate: today(),
-  notes: "",
-});
-
+const emptyForm = (): FormState => ({ instrumentId: "", sourceType: "screenshot", exchange: "OANDA", timeframe: "60", direction: "long", executionPrice: "", stopLoss: "", takeProfit1: "", takeProfit2: "", takeProfit3: "", expectedPnl: "", status: "active", tradeDate: today(), rationale: "", notes: "", resultPnl: "", resultPnlPercent: "", resultNotes: "" });
+const numberOrNull = (value: string) => value.trim() ? Number(value) : null;
 const normaliseSymbol = (symbol: string) => symbol.replace(/[^a-z0-9]/gi, "").toLowerCase();
+const evidenceUrl = (path: string | null) => path ? supabase.storage.from("forecast-images").getPublicUrl(path).data.publicUrl : null;
 
-const DailyForecastAdmin = () => {
+export default function DailyForecastAdmin() {
   const [instruments, setInstruments] = useState<Instrument[]>([]);
   const [forecasts, setForecasts] = useState<Forecast[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [resultImageFile, setResultImageFile] = useState<File | null>(null);
-  const [resultPreviewUrl, setResultPreviewUrl] = useState<string | null>(null);
-  const [editingForecast, setEditingForecast] = useState<Forecast | null>(null);
-  const [extraction, setExtraction] = useState<Extraction | null>(null);
-  const [isReadingImage, setIsReadingImage] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [editing, setEditing] = useState<Forecast | null>(null);
+  const [preFile, setPreFile] = useState<File | null>(null);
+  const [postFile, setPostFile] = useState<File | null>(null);
+  const [prePreview, setPrePreview] = useState<string | null>(null);
+  const [postPreview, setPostPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"" | "save" | "image-ai" | "notes-ai">("");
   const [error, setError] = useState("");
-  const [editorMarketType, setEditorMarketType] = useState("");
-  const [editorSubMarket, setEditorSubMarket] = useState("");
-  const [listMarketType, setListMarketType] = useState("");
-  const [listSubMarket, setListSubMarket] = useState("");
-  const [listInstrumentId, setListInstrumentId] = useState("");
+  const [message, setMessage] = useState("");
+  const [extraction, setExtraction] = useState<Extraction | null>(null);
   const [listStatus, setListStatus] = useState("");
-
-  const selectedInstrument = useMemo(
-    () => instruments.find((instrument) => instrument.id === form.instrumentId) ?? null,
-    [form.instrumentId, instruments],
-  );
-
-  const marketTypes = useMemo(
-    () => [...new Set(instruments.map((instrument) => instrument.market_type))],
-    [instruments],
-  );
-
-  const editorSubMarkets = useMemo(
-    () => [...new Set(
-      instruments
-        .filter((instrument) => !editorMarketType || instrument.market_type === editorMarketType)
-        .map((instrument) => instrument.sub_market),
-    )],
-    [editorMarketType, instruments],
-  );
-
-  const editorInstruments = useMemo(
-    () => instruments.filter((instrument) =>
-      (!editorMarketType || instrument.market_type === editorMarketType) &&
-      (!editorSubMarket || instrument.sub_market === editorSubMarket),
-    ),
-    [editorMarketType, editorSubMarket, instruments],
-  );
-
-  const listSubMarkets = useMemo(
-    () => [...new Set(
-      instruments
-        .filter((instrument) => !listMarketType || instrument.market_type === listMarketType)
-        .map((instrument) => instrument.sub_market),
-    )],
-    [instruments, listMarketType],
-  );
-
-  const listInstruments = useMemo(
-    () => instruments.filter((instrument) =>
-      (!listMarketType || instrument.market_type === listMarketType) &&
-      (!listSubMarket || instrument.sub_market === listSubMarket),
-    ),
-    [instruments, listMarketType, listSubMarket],
-  );
-
-  const filteredForecasts = useMemo(
-    () => forecasts.filter((forecast) => {
-      const instrument = instruments.find((item) => item.id === forecast.instrument_id);
-      if (listMarketType && instrument?.market_type !== listMarketType) return false;
-      if (listSubMarket && instrument?.sub_market !== listSubMarket) return false;
-      if (listInstrumentId && forecast.instrument_id !== listInstrumentId) return false;
-      if (listStatus && forecast.status !== listStatus) return false;
-      return true;
-    }),
-    [forecasts, instruments, listInstrumentId, listMarketType, listStatus, listSubMarket],
-  );
+  const [listSource, setListSource] = useState("");
+  const [listQuery, setListQuery] = useState("");
+  const selectedInstrument = instruments.find((item) => item.id === form.instrumentId);
+  const prices = { entry: Number(form.executionPrice), stop: Number(form.stopLoss), target: Number(form.takeProfit1) };
+  const metrics = calculateTradeMetrics(prices.entry, prices.stop, prices.target);
+  const targets = [form.takeProfit1, form.takeProfit2, form.takeProfit3].filter(Boolean).map(Number);
+  const warnings = getTradeWarnings(form.direction, prices.entry, prices.stop, targets);
+  const marketGroups = useMemo(() => [...new Set(instruments.map((item) => `${item.market_type} · ${item.sub_market}`))], [instruments]);
+  const filteredForecasts = useMemo(() => forecasts.filter((forecast) => {
+    const instrument = instruments.find((item) => item.id === forecast.instrument_id);
+    const query = listQuery.trim().toLowerCase();
+    return (!listStatus || forecast.status === listStatus)
+      && (!listSource || forecast.source_type === listSource)
+      && (!query || `${instrument?.symbol ?? ""} ${instrument?.name ?? ""}`.toLowerCase().includes(query));
+  }), [forecasts, instruments, listQuery, listSource, listStatus]);
 
   const loadData = async () => {
-    const [{ data: instrumentRows, error: instrumentError }, { data: forecastRows, error: forecastError }] =
-      await Promise.all([
-        supabase.from("trading_instruments").select("*").eq("is_active", true).order("display_order"),
-        supabase.from("trading_forecasts").select("*").order("published_at", { ascending: false }),
-      ]);
-
-    if (instrumentError || forecastError) {
-      setError("Unable to load forecasts. Run the new Supabase SQL file first.");
-      return;
-    }
-
-    setInstruments(instrumentRows ?? []);
-    setForecasts(forecastRows ?? []);
+    const [instrumentResult, forecastResult] = await Promise.all([
+      supabase.from("trading_instruments").select("*").eq("is_active", true).order("display_order"),
+      supabase.from("trading_forecasts").select("*").order("published_at", { ascending: false }),
+    ]);
+    if (instrumentResult.error || forecastResult.error) setError("Unable to load forecasts. Apply the latest Supabase migrations and try again.");
+    else { setInstruments(instrumentResult.data ?? []); setForecasts(forecastResult.data ?? []); }
   };
-
-  useEffect(() => {
-    void loadData();
-  }, []);
-
-  const setField = <Key extends keyof FormState>(key: Key, value: FormState[Key]) => {
-    setForm((current) => ({ ...current, [key]: value }));
-  };
-
-  const handleImageChange = async (file: File | undefined) => {
+  useEffect(() => { void loadData(); }, []);
+  useEffect(() => () => { if (prePreview?.startsWith("blob:")) URL.revokeObjectURL(prePreview); if (postPreview?.startsWith("blob:")) URL.revokeObjectURL(postPreview); }, [prePreview, postPreview]);
+  const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
+  const prepareImage = async (file: File | undefined, kind: "pre" | "post") => {
+    if (!file) return;
     setError("");
-    setMessage("");
-    setExtraction(null);
-
-    if (!file) {
-      return;
-    }
-
     try {
       const compressed = await compressForecastImage(file);
-      setImageFile(compressed);
-      setPreviewUrl(URL.createObjectURL(compressed));
-      setMessage(`Image prepared: ${Math.ceil(compressed.size / 1024)} KB. It will use less storage.`);
-    } catch (imageError) {
-      setImageFile(null);
-      setPreviewUrl(null);
-      setError(imageError instanceof Error ? imageError.message : "Unable to prepare this image.");
-    }
+      const url = URL.createObjectURL(compressed);
+      if (kind === "pre") { setPreFile(compressed); setPrePreview(url); setExtraction(null); }
+      else { setPostFile(compressed); setPostPreview(url); }
+      setMessage(`${kind === "pre" ? "Pre-trade" : "Post-trade"} evidence prepared (${Math.ceil(compressed.size / 1024)} KB).`);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to prepare this image."); }
   };
-
-  const handleResultImageChange = async (file: File | undefined) => {
-    setError("");
-    setMessage("");
-
-    if (!file) {
-      setResultImageFile(null);
-      setResultPreviewUrl(null);
-      return;
-    }
-
+  const readScreenshot = async () => {
+    if (!preFile) return setError("Attach pre-trade evidence before asking AI to read it.");
+    setBusy("image-ai"); setError("");
     try {
-      const compressed = await compressForecastImage(file);
-      setResultImageFile(compressed);
-      setResultPreviewUrl(URL.createObjectURL(compressed));
-      setMessage(`Result screenshot prepared: ${Math.ceil(compressed.size / 1024)} KB.`);
-    } catch (imageError) {
-      setResultImageFile(null);
-      setResultPreviewUrl(null);
-      setError(imageError instanceof Error ? imageError.message : "Unable to prepare this result screenshot.");
-    }
+      const { data, error: fnError } = await supabase.functions.invoke("analyze-trade-image", { body: { mode: "image", image: await fileToDataUrl(preFile) } });
+      if (fnError || data?.error || !data?.extraction) throw new Error(data?.error ?? fnError?.message ?? "AI returned no trade details.");
+      const next = data.extraction as Extraction;
+      const match = instruments.find((item) => next.symbol && normaliseSymbol(item.symbol) === normaliseSymbol(next.symbol));
+      setExtraction(next);
+      setForm((current) => ({ ...current, instrumentId: match?.id ?? current.instrumentId, direction: next.direction ?? current.direction, executionPrice: next.executionPrice?.toString() ?? current.executionPrice, stopLoss: next.stopLoss?.toString() ?? current.stopLoss, takeProfit1: next.takeProfit1?.toString() ?? current.takeProfit1, takeProfit2: next.takeProfit2?.toString() ?? current.takeProfit2, status: next.status, notes: next.notes || current.notes }));
+      setMessage(`AI filled visible screenshot values (${next.confidence} confidence). Review every field.`);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "AI could not read the evidence. You can continue manually."); } finally { setBusy(""); }
   };
-
-  const handleReadImage = async () => {
-    if (!imageFile) {
-      setError("Upload a TradingView image before asking AI to read it.");
-      return;
-    }
-
-    setIsReadingImage(true);
-    setError("");
-    setMessage("");
-
+  const generateNotes = async (result = false) => {
+    if (!selectedInstrument || !metrics) return setError("Choose an instrument and enter valid prices before generating notes.");
+    setBusy("notes-ai"); setError("");
     try {
-      const image = await fileToDataUrl(imageFile);
-      const { data, error: functionError } = await supabase.functions.invoke("analyze-trade-image", {
-        body: { image },
-      });
-
-      if (functionError || data?.error) {
-        throw new Error(data?.error ?? functionError?.message ?? "AI could not read this image.");
-      }
-
-      const nextExtraction = data?.extraction as Extraction | undefined;
-      if (!nextExtraction) {
-        throw new Error("AI did not return trade values.");
-      }
-
-      setExtraction(nextExtraction);
-      const matchedInstrument = instruments.find(
-        (instrument) =>
-          nextExtraction.symbol &&
-          normaliseSymbol(instrument.symbol) === normaliseSymbol(nextExtraction.symbol),
-      );
-
-      if (matchedInstrument) {
-        setEditorMarketType(matchedInstrument.market_type);
-        setEditorSubMarket(matchedInstrument.sub_market);
-      }
-
-      setForm((current) => ({
-        ...current,
-        instrumentId: matchedInstrument?.id ?? current.instrumentId,
-        direction: nextExtraction.direction ?? current.direction,
-        executionPrice: nextExtraction.executionPrice?.toString() ?? current.executionPrice,
-        stopLoss: nextExtraction.stopLoss?.toString() ?? current.stopLoss,
-        takeProfit1: nextExtraction.takeProfit1?.toString() ?? current.takeProfit1,
-        takeProfit2: nextExtraction.takeProfit2?.toString() ?? current.takeProfit2,
-        status: nextExtraction.status ?? current.status,
-        notes: nextExtraction.notes || current.notes,
-      }));
-
-      setMessage(
-        matchedInstrument
-          ? `AI filled the visible values (${nextExtraction.confidence} confidence). Please check them before publishing.`
-          : "AI read the image, but you must choose one of the supported instruments before publishing.",
-      );
-    } catch (analysisError) {
-      setError(analysisError instanceof Error ? analysisError.message : "AI could not read this image.");
-    } finally {
-      setIsReadingImage(false);
-    }
+      const evidenceFile = result ? postFile : preFile;
+      const image = evidenceFile ? await fileToDataUrl(evidenceFile) : undefined;
+      const { data, error: fnError } = await supabase.functions.invoke("analyze-trade-image", { body: { mode: "notes", image, trade: { symbol: selectedInstrument.symbol, exchange: form.exchange, timeframe: form.timeframe, direction: form.direction, entry: prices.entry, stopLoss: prices.stop, takeProfits: targets, riskReward: metrics.riskRewardRatio, expectedReturnPercent: metrics.rewardPercent, expectedPnl: numberOrNull(form.expectedPnl), rationale: form.rationale, result: result ? { status: form.status, pnl: numberOrNull(form.resultPnl), pnlPercent: numberOrNull(form.resultPnlPercent), notes: form.resultNotes } : null } } });
+      if (fnError || data?.error || typeof data?.notes !== "string") throw new Error(data?.error ?? fnError?.message ?? "AI returned no notes.");
+      setField(result ? "resultNotes" : "notes", data.notes);
+      setMessage("AI draft generated. Review and edit it before saving.");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "AI failed. You can still write notes manually."); } finally { setBusy(""); }
   };
-
-  const resetForm = () => {
-    setForm(emptyForm());
-    setEditorMarketType("");
-    setEditorSubMarket("");
-    setImageFile(null);
-    setPreviewUrl(null);
-    setResultImageFile(null);
-    setResultPreviewUrl(null);
-    setExtraction(null);
-    setEditingForecast(null);
+  const reset = () => { setForm(emptyForm()); setEditing(null); setPreFile(null); setPostFile(null); setPrePreview(null); setPostPreview(null); setExtraction(null); setError(""); };
+  const editForecast = (forecast: Forecast) => {
+    setEditing(forecast); setForm({ instrumentId: forecast.instrument_id, sourceType: forecast.source_type as SourceType, exchange: forecast.exchange, timeframe: forecast.timeframe, direction: forecast.direction as TradeDirection, executionPrice: String(forecast.execution_price), stopLoss: String(forecast.stop_loss), takeProfit1: String(forecast.take_profit_1), takeProfit2: forecast.take_profit_2?.toString() ?? "", takeProfit3: forecast.take_profit_3?.toString() ?? "", expectedPnl: forecast.expected_pnl?.toString() ?? "", status: forecast.status as TradeStatus, tradeDate: forecast.trade_date, rationale: forecast.rationale, notes: forecast.notes, resultPnl: forecast.result_pnl?.toString() ?? "", resultPnlPercent: forecast.result_pnl_percent?.toString() ?? "", resultNotes: forecast.result_notes });
+    setPrePreview(evidenceUrl(forecast.image_path)); setPostPreview(evidenceUrl(forecast.result_image_path)); setPreFile(null); setPostFile(null); setExtraction(forecast.ai_extraction as Extraction | null); window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-  const handleEdit = (forecast: Forecast) => {
-    const instrument = instruments.find((item) => item.id === forecast.instrument_id);
-    setEditorMarketType(instrument?.market_type ?? "");
-    setEditorSubMarket(instrument?.sub_market ?? "");
-    setEditingForecast(forecast);
-    setForm({
-      instrumentId: forecast.instrument_id,
-      direction: forecast.direction as "long" | "short",
-      executionPrice: forecast.execution_price.toString(),
-      stopLoss: forecast.stop_loss.toString(),
-      takeProfit1: forecast.take_profit_1.toString(),
-      takeProfit2: forecast.take_profit_2?.toString() ?? "",
-      status: forecast.status as TradeStatus,
-      tradeDate: forecast.trade_date,
-      notes: forecast.notes,
+  const upload = async (file: File, folder: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Your admin session ended. Sign in again.");
+    const path = `${user.id}/${folder}${crypto.randomUUID()}.jpg`;
+    const { error: uploadError } = await supabase.storage.from("forecast-images").upload(path, file, { cacheControl: "31536000", contentType: "image/jpeg" });
+    if (uploadError) throw uploadError;
+    return path;
+  };
+  const save = async (event: FormEvent) => {
+    event.preventDefault(); setError(""); setMessage("");
+    if (!form.instrumentId) return setError("Choose a trading instrument.");
+    const validationErrors = validateForecastDraft({
+      direction: form.direction,
+      entry: prices.entry,
+      stop: prices.stop,
+      targets: [numberOrNull(form.takeProfit1), numberOrNull(form.takeProfit2), numberOrNull(form.takeProfit3)],
+      sourceType: form.sourceType,
+      exchange: form.exchange,
+      timeframe: form.timeframe,
+      hasPreTradeEvidence: Boolean(preFile || editing?.image_path),
+      expectedPnl: numberOrNull(form.expectedPnl),
+      resultPnl: numberOrNull(form.resultPnl),
+      resultPnlPercent: numberOrNull(form.resultPnlPercent),
     });
-    setPreviewUrl(supabase.storage.from("forecast-images").getPublicUrl(forecast.image_path).data.publicUrl);
-    setResultPreviewUrl(forecast.result_image_path ? supabase.storage.from("forecast-images").getPublicUrl(forecast.result_image_path).data.publicUrl : null);
-    setImageFile(null);
-    setResultImageFile(null);
-    setExtraction((forecast.ai_extraction as Extraction | null) ?? null);
-    setError("");
-    setMessage("You are editing a published forecast. Upload a new image only if you want to replace it.");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleDelete = async (forecast: Forecast) => {
-    if (!window.confirm("Delete this forecast and its image?")) {
-      return;
-    }
-
-    setError("");
-    const { error: deleteError } = await supabase.from("trading_forecasts").delete().eq("id", forecast.id);
-    if (deleteError) {
-      setError(deleteError.message);
-      return;
-    }
-
-    const imagePaths = [forecast.image_path, forecast.result_image_path].filter((path): path is string => Boolean(path));
-    const { error: storageError } = await supabase.storage.from("forecast-images").remove(imagePaths);
-    if (storageError) {
-      setError("Forecast was deleted, but its image could not be removed: " + storageError.message);
-    }
-
-    setMessage("Forecast deleted.");
-    await loadData();
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
-    setMessage("");
-
-    const executionPrice = Number(form.executionPrice);
-    const stopLoss = Number(form.stopLoss);
-    const takeProfit1 = Number(form.takeProfit1);
-    const takeProfit2 = form.takeProfit2 ? Number(form.takeProfit2) : null;
-
-    if (
-      !form.instrumentId ||
-      !Number.isFinite(executionPrice) ||
-      executionPrice <= 0 ||
-      !Number.isFinite(stopLoss) ||
-      stopLoss <= 0 ||
-      !Number.isFinite(takeProfit1) ||
-      takeProfit1 <= 0 ||
-      (takeProfit2 !== null && (!Number.isFinite(takeProfit2) || takeProfit2 <= 0))
-    ) {
-      setError("Choose an instrument and enter valid execution, stop-loss, and take-profit prices.");
-      return;
-    }
-
-    if (!editingForecast && !imageFile) {
-      setError("Upload a TradingView screenshot before publishing.");
-      return;
-    }
-
-    setIsSaving(true);
-
-    let imagePath = editingForecast?.image_path ?? "";
-    let resultImagePath = editingForecast?.result_image_path ?? null;
-    let replacementPath: string | null = null;
-    let replacementResultPath: string | null = null;
-
+    if (validationErrors.length) return setError(validationErrors.join(" "));
+    setBusy("save"); const uploaded: string[] = [];
     try {
-      let uploadUserId = "";
-      if (imageFile || resultImageFile) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error("Your admin session has ended. Please sign in again.");
-        }
-        uploadUserId = user.id;
-      }
-
-      if (imageFile) {
-        replacementPath = `${uploadUserId}/${crypto.randomUUID()}.jpg`;
-        const { error: uploadError } = await supabase.storage.from("forecast-images").upload(replacementPath, imageFile, {
-          cacheControl: "31536000",
-          contentType: "image/jpeg",
-          upsert: false,
-        });
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        imagePath = replacementPath;
-      }
-
-      if (resultImageFile) {
-        replacementResultPath = `${uploadUserId}/results/${crypto.randomUUID()}.jpg`;
-        const { error: uploadError } = await supabase.storage.from("forecast-images").upload(replacementResultPath, resultImageFile, {
-          cacheControl: "31536000",
-          contentType: "image/jpeg",
-          upsert: false,
-        });
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        resultImagePath = replacementResultPath;
-      }
-
-      const payload = {
-        instrument_id: form.instrumentId,
-        direction: form.direction,
-        execution_price: executionPrice,
-        stop_loss: stopLoss,
-        take_profit_1: takeProfit1,
-        take_profit_2: takeProfit2,
-        status: form.status,
-        trade_date: form.tradeDate,
-        notes: form.notes.trim(),
-        image_path: imagePath,
-        result_image_path: resultImagePath,
-        ai_extraction: extraction,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error: saveError } = editingForecast
-        ? await supabase.from("trading_forecasts").update(payload).eq("id", editingForecast.id)
-        : await supabase.from("trading_forecasts").insert(payload);
-
-      if (saveError) {
-        throw saveError;
-      }
-
-      const replacedPaths = [
-        replacementPath && editingForecast?.image_path ? editingForecast.image_path : null,
-        replacementResultPath && editingForecast?.result_image_path ? editingForecast.result_image_path : null,
-      ].filter((path): path is string => Boolean(path));
-      if (replacedPaths.length) {
-        await supabase.storage.from("forecast-images").remove(replacedPaths);
-      }
-
-      setMessage(editingForecast ? "Forecast updated for every website visitor." : "Forecast published for every website visitor.");
-      resetForm();
-      await loadData();
-    } catch (saveError) {
-      const failedUploadPaths = [replacementPath, replacementResultPath].filter((path): path is string => Boolean(path));
-      if (failedUploadPaths.length) {
-        await supabase.storage.from("forecast-images").remove(failedUploadPaths);
-      }
-      setError(saveError instanceof Error ? saveError.message : "Unable to publish this forecast.");
-    } finally {
-      setIsSaving(false);
-    }
+      const imagePath = preFile ? await upload(preFile, "pre-trade/") : editing?.image_path ?? null; if (preFile && imagePath) uploaded.push(imagePath);
+      const resultPath = postFile ? await upload(postFile, "post-trade/") : editing?.result_image_path ?? null; if (postFile && resultPath) uploaded.push(resultPath);
+      const payload = { instrument_id: form.instrumentId, source_type: form.sourceType, exchange: form.exchange.trim(), timeframe: form.timeframe, direction: form.direction, execution_price: prices.entry, stop_loss: prices.stop, take_profit_1: prices.target, take_profit_2: numberOrNull(form.takeProfit2), take_profit_3: numberOrNull(form.takeProfit3), expected_pnl: numberOrNull(form.expectedPnl), status: form.status, trade_date: form.tradeDate, rationale: form.rationale.trim(), notes: form.notes.trim(), result_pnl: numberOrNull(form.resultPnl), result_pnl_percent: numberOrNull(form.resultPnlPercent), result_notes: form.resultNotes.trim(), image_path: imagePath, result_image_path: resultPath, ai_extraction: extraction, chart_metadata: form.sourceType === "live_chart" ? { provider: "TradingView Advanced Chart widget", symbol: selectedInstrument?.symbol, exchange: form.exchange, timeframe: form.timeframe, capturedAt: new Date().toISOString(), containsDrawings: false } : null, updated_at: new Date().toISOString() };
+      const result = editing ? await supabase.from("trading_forecasts").update(payload).eq("id", editing.id) : await supabase.from("trading_forecasts").insert(payload);
+      if (result.error) throw result.error;
+      const replaced = [preFile && editing?.image_path, postFile && editing?.result_image_path].filter((path): path is string => Boolean(path)); if (replaced.length) await supabase.storage.from("forecast-images").remove(replaced);
+      reset(); setMessage(editing ? "Forecast updated." : "Forecast published."); await loadData();
+    } catch (cause) { if (uploaded.length) await supabase.storage.from("forecast-images").remove(uploaded); setError(cause instanceof Error ? cause.message : "Unable to save forecast."); } finally { setBusy(""); }
   };
+  const remove = async (forecast: Forecast) => {
+    if (!window.confirm("Delete this forecast and its evidence?")) return;
+    const { error: deleteError } = await supabase.from("trading_forecasts").delete().eq("id", forecast.id); if (deleteError) return setError(deleteError.message);
+    const paths = [forecast.image_path, forecast.result_image_path].filter((path): path is string => Boolean(path)); if (paths.length) await supabase.storage.from("forecast-images").remove(paths); await loadData(); setMessage("Forecast deleted.");
+  };
+  const metric = (value: number | null | undefined, suffix = "") => value == null ? "—" : `${value.toFixed(2)}${suffix}`;
 
-  return (
-    <div>
-      <PageHero
-        title="AI Trade Forecast Admin"
-        subtitle="Upload a TradingView screenshot, let AI prefill the trade values, then confirm and publish."
-        imageSrc={heroImage}
-        imageAlt="Forecast dashboard with candlestick charts"
-      />
-
-      <div className="container py-12">
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <Reveal>
-            <Card className="hover-glow">
-              <CardHeader>
-                <CardTitle>{editingForecast ? "Edit published forecast" : "Publish a trade forecast"}</CardTitle>
-                <CardDescription>
-                  Choose market type, sub-market, and instrument before publishing. Images are compressed to 450 KB or less before upload.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-5" onSubmit={handleSubmit}>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="forecast-image">TradingView image</label>
-                    <Input
-                      id="forecast-image"
-                      type="file"
-                      accept="image/*"
-                      onChange={(event) => void handleImageChange(event.target.files?.[0])}
-                    />
-                    <p className="text-xs text-muted-foreground">The image is converted to compressed JPEG before it is saved.</p>
-                  </div>
-
-                  <Button type="button" variant="secondary" onClick={() => void handleReadImage()} disabled={!imageFile || isReadingImage}>
-                    {isReadingImage ? "Reading image…" : "Read trade values with AI"}
-                  </Button>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="market-type">Market type</label>
-                      <select id="market-type" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={editorMarketType} onChange={(event) => { setEditorMarketType(event.target.value); setEditorSubMarket(""); setField("instrumentId", ""); }}>
-                        <option value="">Choose type</option>
-                        {marketTypes.map((item) => <option key={item} value={item}>{item}</option>)}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="sub-market">Sub-market</label>
-                      <select id="sub-market" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={editorSubMarket} onChange={(event) => { setEditorSubMarket(event.target.value); setField("instrumentId", ""); }}>
-                        <option value="">Choose sub-market</option>
-                        {editorSubMarkets.map((item) => <option key={item} value={item}>{item}</option>)}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="instrument">Instrument</label>
-                      <select id="instrument" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.instrumentId} onChange={(event) => setField("instrumentId", event.target.value)}>
-                        <option value="">Choose instrument</option>
-                        {editorInstruments.map((instrument) => (
-                          <option key={instrument.id} value={instrument.id}>{instrument.symbol} — {instrument.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="direction">Direction</label>
-                      <select id="direction" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.direction} onChange={(event) => setField("direction", event.target.value as "long" | "short")}>
-                        <option value="long">Long / Buy</option>
-                        <option value="short">Short / Sell</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="execution-price">Execution price</label>
-                      <Input id="execution-price" inputMode="decimal" value={form.executionPrice} onChange={(event) => setField("executionPrice", event.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="stop-loss">Stop loss</label>
-                      <Input id="stop-loss" inputMode="decimal" value={form.stopLoss} onChange={(event) => setField("stopLoss", event.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="take-profit-1">Take profit 1</label>
-                      <Input id="take-profit-1" inputMode="decimal" value={form.takeProfit1} onChange={(event) => setField("takeProfit1", event.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="take-profit-2">Take profit 2 (optional)</label>
-                      <Input id="take-profit-2" inputMode="decimal" value={form.takeProfit2} onChange={(event) => setField("takeProfit2", event.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="trade-date">Trade date</label>
-                      <Input id="trade-date" type="date" value={form.tradeDate} onChange={(event) => setField("tradeDate", event.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium" htmlFor="status">Result status</label>
-                      <select id="status" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.status} onChange={(event) => setField("status", event.target.value as TradeStatus)}>
-                        <option value="active">Active</option>
-                        <option value="win">Win</option>
-                        <option value="loss">Loss</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="result-image">Result screenshot (optional)</label>
-                    <Input
-                      id="result-image"
-                      type="file"
-                      accept="image/*"
-                      onChange={(event) => void handleResultImageChange(event.target.files?.[0])}
-                    />
-                    <p className="text-xs text-muted-foreground">Upload the completed-trade screenshot after selecting Win or Loss. It is compressed before it is saved.</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="notes">Trade notes</label>
-                    <Textarea id="notes" rows={4} maxLength={2000} value={form.notes} onChange={(event) => setField("notes", event.target.value)} placeholder="Optional context visible in the setup." />
-                  </div>
-
-                  {selectedInstrument ? <p className="text-sm text-muted-foreground">Publishing for {selectedInstrument.market_type} · {selectedInstrument.sub_market} · {selectedInstrument.symbol} — {selectedInstrument.name}.</p> : null}
-                  {extraction ? <p className="text-sm text-muted-foreground">AI confidence: {extraction.confidence}. Always check every field against the image.</p> : null}
-                  {error ? <p className="text-sm text-destructive">{error}</p> : null}
-                  {message ? <p className="text-sm text-emerald-600">{message}</p> : null}
-
-                  <div className="flex flex-wrap gap-3">
-                    <Button type="submit" className="rounded-full px-6" disabled={isSaving}>{isSaving ? "Publishing…" : editingForecast ? "Update forecast" : "Publish forecast"}</Button>
-                    {editingForecast ? <Button type="button" variant="secondary" onClick={resetForm}>Cancel editing</Button> : null}
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </Reveal>
-
-          <Reveal delayMs={120}>
-            <Card className="overflow-hidden">
-              <CardHeader>
-                <CardTitle>Compressed preview</CardTitle>
-                <CardDescription>Only this compressed image is stored in Supabase.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {previewUrl ? <img src={previewUrl} alt="Trade screenshot preview" className="h-72 w-full rounded-xl object-cover" /> : <div className="flex h-72 items-center justify-center rounded-xl border border-dashed px-6 text-center text-sm text-muted-foreground">Upload a TradingView screenshot to prepare it for AI and storage.</div>}
-                {resultPreviewUrl ? <div className="space-y-2"><p className="text-sm font-medium">Result screenshot</p><img src={resultPreviewUrl} alt="Trade result screenshot preview" className="h-56 w-full rounded-xl object-cover" /></div> : null}
-              </CardContent>
-            </Card>
-          </Reveal>
-        </div>
-
-        <Reveal delayMs={180}>
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle>Published forecasts</CardTitle>
-              <CardDescription>These records are shared with every visitor and no longer depend on your browser.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 border-b pb-6 md:grid-cols-2 xl:grid-cols-5">
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="admin-filter-market-type">Market type</label>
-                <select id="admin-filter-market-type" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={listMarketType} onChange={(event) => { setListMarketType(event.target.value); setListSubMarket(""); setListInstrumentId(""); }}>
-                  <option value="">All types</option>
-                  {marketTypes.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="admin-filter-sub-market">Sub-market</label>
-                <select id="admin-filter-sub-market" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={listSubMarket} onChange={(event) => { setListSubMarket(event.target.value); setListInstrumentId(""); }}>
-                  <option value="">All sub-markets</option>
-                  {listSubMarkets.map((item) => <option key={item} value={item}>{item}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="admin-filter-instrument">Instrument</label>
-                <select id="admin-filter-instrument" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={listInstrumentId} onChange={(event) => setListInstrumentId(event.target.value)}>
-                  <option value="">All instruments</option>
-                  {listInstruments.map((instrument) => <option key={instrument.id} value={instrument.id}>{instrument.symbol} — {instrument.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="admin-filter-status">Result</label>
-                <select id="admin-filter-status" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={listStatus} onChange={(event) => setListStatus(event.target.value)}>
-                  <option value="">All results</option>
-                  <option value="active">Active</option>
-                  <option value="win">Win</option>
-                  <option value="loss">Loss</option>
-                </select>
-              </div>
-              <div className="flex items-end">
-                <Button type="button" variant="outline" className="w-full" onClick={() => { setListMarketType(""); setListSubMarket(""); setListInstrumentId(""); setListStatus(""); }}>Clear filters</Button>
-              </div>
-            </CardContent>
-            <CardContent className="space-y-3 pt-6">
-              {filteredForecasts.length ? filteredForecasts.map((forecast) => {
-                const instrument = instruments.find((item) => item.id === forecast.instrument_id);
-                return <div key={forecast.id} className="flex flex-col justify-between gap-3 rounded-lg border p-4 sm:flex-row sm:items-center">
-                  <div><p className="font-semibold">{instrument ? `${instrument.market_type} · ${instrument.sub_market} · ${instrument.symbol} — ${instrument.name}` : "Unknown instrument"}</p><p className="text-sm text-muted-foreground">{forecast.direction.toUpperCase()} · {forecast.status.toUpperCase()} · {forecast.trade_date}{forecast.result_image_path ? " · Result screenshot attached" : ""}</p></div>
-                  <div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => handleEdit(forecast)}>Edit</Button><Button size="sm" variant="destructive" onClick={() => void handleDelete(forecast)}>Delete</Button></div>
-                </div>;
-              }) : <p className="text-sm text-muted-foreground">{forecasts.length ? "No forecasts match these filters." : "No forecasts have been published yet."}</p>}
-            </CardContent>
-          </Card>
-        </Reveal>
-      </div>
-    </div>
-  );
-};
-
-export default DailyForecastAdmin;
+  return <div><PageHero title="Trade Forecast Admin" subtitle="Publish screenshot-based forecasts or build a setup alongside a live TradingView chart." imageSrc={heroImage} imageAlt="Forecast dashboard with candlestick charts" />
+    <div className="container space-y-8 py-12"><Card><CardHeader><CardTitle>{editing ? "Edit forecast" : "Create forecast"}</CardTitle><CardDescription>Both workflows use the same validated trade model, evidence storage, and public forecast display.</CardDescription></CardHeader><CardContent>
+      <form className="space-y-6" onSubmit={save}>
+        <fieldset className="grid gap-3 sm:grid-cols-2"><legend className="mb-2 text-sm font-medium">Forecast source</legend>{(["screenshot", "live_chart"] as SourceType[]).map((source) => <label key={source} className={`cursor-pointer rounded-xl border p-4 ${form.sourceType === source ? "border-primary bg-primary/5" : ""}`}><input className="mr-2" type="radio" name="source" checked={form.sourceType === source} onChange={() => setField("sourceType", source)} />{source === "screenshot" ? "Upload Screenshot" : "Use Live TradingView Chart"}<span className="mt-1 block text-xs text-muted-foreground">{source === "screenshot" ? "Existing AI-assisted workflow." : "Official embedded chart with saved configuration metadata."}</span></label>)}</fieldset>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><label className="space-y-2 text-sm font-medium">Trading pair<select className="h-10 w-full rounded-md border bg-background px-3" value={form.instrumentId} onChange={(e) => setField("instrumentId", e.target.value)}><option value="">Choose instrument</option>{marketGroups.map((group) => <optgroup key={group} label={group}>{instruments.filter((item) => `${item.market_type} · ${item.sub_market}` === group).map((item) => <option key={item.id} value={item.id}>{item.symbol} — {item.name}</option>)}</optgroup>)}</select></label><label className="space-y-2 text-sm font-medium">Exchange<Input value={form.exchange} maxLength={80} onChange={(e) => setField("exchange", e.target.value)} placeholder="OANDA" /></label><label className="space-y-2 text-sm font-medium">Timeframe<select className="h-10 w-full rounded-md border bg-background px-3" value={form.timeframe} onChange={(e) => setField("timeframe", e.target.value)}>{[["1","1 minute"],["5","5 minutes"],["15","15 minutes"],["60","1 hour"],["240","4 hours"],["D","Daily"],["W","Weekly"]].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="space-y-2 text-sm font-medium">Trade date<Input type="date" value={form.tradeDate} onChange={(e) => setField("tradeDate", e.target.value)} /></label></div>
+        {form.sourceType === "live_chart" ? <TradingViewChart exchange={form.exchange} symbol={selectedInstrument?.symbol ?? ""} timeframe={form.timeframe} /> : null}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><label className="space-y-2 text-sm font-medium">Direction<select className="h-10 w-full rounded-md border bg-background px-3" value={form.direction} onChange={(e) => setField("direction", e.target.value as TradeDirection)}><option value="long">Long / Buy</option><option value="short">Short / Sell</option></select></label>{([['executionPrice','Entry price'],['stopLoss','Stop loss'],['takeProfit1','Take profit 1'],['takeProfit2','Take profit 2 (optional)'],['takeProfit3','Take profit 3 (optional)'],['expectedPnl','Expected P&L (optional)']] as [keyof FormState,string][]).map(([key,label]) => <label key={key} className="space-y-2 text-sm font-medium">{label}<Input inputMode="decimal" value={form[key]} onChange={(e) => setField(key, e.target.value as never)} /></label>)}</div>
+        <div className="grid gap-3 rounded-xl border bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-5"><div><p className="text-xs text-muted-foreground">Expected risk</p><p className="font-semibold">{metric(metrics?.risk)}</p></div><div><p className="text-xs text-muted-foreground">Expected reward</p><p className="font-semibold">{metric(metrics?.reward)}</p></div><div><p className="text-xs text-muted-foreground">Risk distance</p><p className="font-semibold">{metric(metrics?.riskPercent, "%")}</p></div><div><p className="text-xs text-muted-foreground">Expected return</p><p className="font-semibold">{metric(metrics?.rewardPercent, "%")}</p></div><div><p className="text-xs text-muted-foreground">Risk / reward</p><p className="font-semibold">{metrics?.riskRewardRatio ? `1 : ${metrics.riskRewardRatio.toFixed(2)}` : "—"}</p></div></div>
+        {warnings.length ? <Alert><AlertTitle>Review this setup</AlertTitle><AlertDescription><ul className="list-disc pl-5">{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></AlertDescription></Alert> : null}
+        <div className="grid gap-4 lg:grid-cols-2"><label className="space-y-2 text-sm font-medium">Forecast rationale<Textarea rows={5} maxLength={3000} value={form.rationale} onChange={(e) => setField("rationale", e.target.value)} placeholder="Administrator's factual reasoning and setup context" /></label><div className="space-y-2"><label className="text-sm font-medium">Editable forecast notes</label><Textarea rows={5} maxLength={2000} value={form.notes} onChange={(e) => setField("notes", e.target.value)} /><Button type="button" variant="secondary" disabled={busy !== ""} onClick={() => void generateNotes()}>{busy === "notes-ai" ? "Generating…" : "Generate notes with AI"}</Button></div></div>
+        <Card><CardHeader><CardTitle className="text-lg">Pre-trade evidence</CardTitle><CardDescription>{form.sourceType === "live_chart" ? "The free embedded widget does not expose drawings or screenshots. Upload an image to preserve visual evidence; chart configuration is saved separately." : "Required for screenshot forecasts and available to the existing Gemini image reader."}</CardDescription></CardHeader><CardContent className="space-y-3"><Input type="file" accept="image/*" onChange={(e) => void prepareImage(e.target.files?.[0], "pre")} />{prePreview ? <img src={prePreview} alt="Pre-trade evidence preview" className="max-h-72 w-full rounded-xl object-contain" /> : <p className="text-sm text-muted-foreground">No pre-trade evidence attached.</p>}{form.sourceType === "screenshot" ? <Button type="button" variant="secondary" disabled={!preFile || busy !== ""} onClick={() => void readScreenshot()}>{busy === "image-ai" ? "Reading…" : "Read trade values with AI"}</Button> : null}</CardContent></Card>
+        <Card><CardHeader><CardTitle className="text-lg">Post-trade result</CardTitle><CardDescription>Complete this section when the trade finishes. Evidence and notes remain separate from the original setup.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid gap-4 md:grid-cols-3"><label className="space-y-2 text-sm font-medium">Status<select className="h-10 w-full rounded-md border bg-background px-3" value={form.status} onChange={(e) => setField("status", e.target.value as TradeStatus)}><option value="active">Active</option><option value="win">Win</option><option value="loss">Loss</option></select></label><label className="space-y-2 text-sm font-medium">Result P&L<Input inputMode="decimal" value={form.resultPnl} onChange={(e) => setField("resultPnl", e.target.value)} /></label><label className="space-y-2 text-sm font-medium">Result P&L %<Input inputMode="decimal" value={form.resultPnlPercent} onChange={(e) => setField("resultPnlPercent", e.target.value)} /></label></div><Textarea aria-label="Result notes" rows={4} maxLength={3000} value={form.resultNotes} onChange={(e) => setField("resultNotes", e.target.value)} placeholder="Editable result notes" /><div className="flex flex-wrap gap-3"><Button type="button" variant="secondary" disabled={busy !== "" || form.status === "active"} onClick={() => void generateNotes(true)}>Generate result notes</Button><Input className="max-w-md" type="file" accept="image/*" onChange={(e) => void prepareImage(e.target.files?.[0], "post")} /></div>{postPreview ? <img src={postPreview} alt="Post-trade evidence preview" className="max-h-64 w-full rounded-xl object-contain" /> : null}</CardContent></Card>
+        {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}{message ? <p className="text-sm text-emerald-600">{message}</p> : null}<div className="flex gap-3"><Button type="submit" disabled={busy !== ""}>{busy === "save" ? "Saving…" : editing ? "Update forecast" : "Save forecast"}</Button>{editing ? <Button type="button" variant="outline" onClick={reset}>Cancel</Button> : null}</div>
+      </form></CardContent></Card>
+      <Card><CardHeader><CardTitle>Published forecasts</CardTitle><CardDescription>Edit, complete, or remove existing screenshot and live-chart forecasts.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 md:grid-cols-4"><Input aria-label="Search forecasts" value={listQuery} onChange={(event) => setListQuery(event.target.value)} placeholder="Search symbol or instrument" /><select aria-label="Filter by source" className="h-10 rounded-md border bg-background px-3 text-sm" value={listSource} onChange={(event) => setListSource(event.target.value)}><option value="">All sources</option><option value="screenshot">Screenshot</option><option value="live_chart">Live chart</option></select><select aria-label="Filter by status" className="h-10 rounded-md border bg-background px-3 text-sm" value={listStatus} onChange={(event) => setListStatus(event.target.value)}><option value="">All statuses</option><option value="active">Active</option><option value="win">Win</option><option value="loss">Loss</option></select><Button type="button" variant="outline" onClick={() => { setListQuery(""); setListSource(""); setListStatus(""); }}>Clear filters</Button></div>{filteredForecasts.length ? filteredForecasts.map((forecast) => { const instrument = instruments.find((item) => item.id === forecast.instrument_id); return <div key={forecast.id} className="flex flex-col justify-between gap-3 rounded-xl border p-4 sm:flex-row sm:items-center"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{instrument?.symbol ?? "Unknown instrument"}</p><Badge variant="outline">{forecast.source_type === "live_chart" ? "Live chart" : "Screenshot"}</Badge><Badge>{forecast.status}</Badge></div><p className="text-sm text-muted-foreground">{forecast.direction.toUpperCase()} · {forecast.timeframe || "Legacy timeframe"} · {forecast.trade_date}</p></div><div className="flex gap-2"><Button type="button" size="sm" variant="secondary" onClick={() => editForecast(forecast)}>Edit</Button><Button type="button" size="sm" variant="destructive" onClick={() => void remove(forecast)}>Delete</Button></div></div>; }) : <p className="text-sm text-muted-foreground">{forecasts.length ? "No forecasts match these filters." : "No forecasts published."}</p>}</CardContent></Card>
+    </div></div>;
+}
