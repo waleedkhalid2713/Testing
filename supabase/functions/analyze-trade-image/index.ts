@@ -86,20 +86,16 @@ Deno.serve(async (request) => {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (user?.email?.toLowerCase() !== ADMIN_EMAIL) {
-    return jsonResponse({ error: "Only the admin can use forecast AI." }, 403);
+    return jsonResponse({ error: "Only the admin can analyse forecast images." }, 403);
   }
 
-  const body = await request.json().catch(() => ({}));
-  const mode = body.mode === "notes" ? "notes" : "image";
-  const image = body.image;
-  if (mode === "image" && (typeof image !== "string" || !image.startsWith("data:image/jpeg;base64,") || image.length > 700_000)) {
+  const { image } = await request.json().catch(() => ({ image: "" }));
+  if (
+    typeof image !== "string" ||
+    !image.startsWith("data:image/jpeg;base64,") ||
+    image.length > 700_000
+  ) {
     return jsonResponse({ error: "Upload a compressed JPEG image under 500 KB." }, 400);
-  }
-  if (image !== undefined && (typeof image !== "string" || !image.startsWith("data:image/jpeg;base64,") || image.length > 700_000)) {
-    return jsonResponse({ error: "Chart evidence must be a compressed JPEG under 500 KB." }, 400);
-  }
-  if (mode === "notes" && (!body.trade || typeof body.trade.symbol !== "string")) {
-    return jsonResponse({ error: "Valid structured trade details are required." }, 400);
   }
 
   const apiKey = Deno.env.get("GEMINI_API_KEY");
@@ -110,26 +106,31 @@ Deno.serve(async (request) => {
     );
   }
 
-  const instructions = mode === "notes" ? [
-    "Draft concise, factual educational trade notes from the structured data below.",
-    "Do not give financial advice, guarantee outcomes, or invent chart observations or drawings.",
-    image ? "A chart screenshot is attached; mention only evidence actually visible in it." : "No chart image is attached. Never claim to have analysed a chart or its drawings.",
-    body.trade?.result ? "Write editable post-trade result notes using the supplied outcome." : "Write editable pre-trade forecast notes including setup, risk, targets, and administrator rationale.",
-    "Return only JSON as {\"notes\": \"2-5 concise sentences\"}.",
-    `Structured trade data: ${JSON.stringify(body.trade).slice(0, 8000)}`,
-  ].join("\n") : [
+  const instructions = [
     "Analyse this TradingView trade screenshot as an ICT (Inner Circle Trader) chart reader.",
     "First read all numerical labels from the position tool, price scale, and order labels before analysing the chart.",
     "For a short / sell position tool: execution is the entry line, stop loss is the upper risk boundary or stop label, and take profit is the lower target boundary or target label.",
     "For a long / buy position tool: execution is the entry line, stop loss is the lower risk boundary or stop label, and take profit is the upper target boundary or target label.",
     "Return stopLoss whenever its number is visibly readable. Use null only when no stop-loss number can be read clearly; never invent a price.",
-    "Identify only concepts visible in the screenshot; do not create a recommendation or claim a concept is present when it cannot be seen.",
+    "Identify only ICT concepts visible in the screenshot: buy-side or sell-side liquidity, liquidity sweep, displacement, market-structure shift, fair value gap, order block, premium/discount, and likely target liquidity.",
+    "Do not create a trade recommendation, guarantee an outcome, or claim an ICT concept is present when it cannot be seen.",
     "Return only valid JSON with:",
-    '{"market":"Forex | Indices | Commodities | Crypto | null","symbol":"string or null","direction":"long | short | null","executionPrice":number|null,"stopLoss":number|null,"takeProfit1":number|null,"takeProfit2":number|null,"status":"active | win | loss","notes":"2-4 factual sentences","confidence":"high | medium | low"}',
-    "Use win or loss only if the screenshot proves the outcome. Otherwise use active.",
+    "{",
+    '  "market": "Forex | Indices | Commodities | Crypto | null",',
+    '  "symbol": "string or null",',
+    '  "direction": "long | short | null",',
+    '  "executionPrice": number or null,',
+    '  "stopLoss": number or null,',
+    '  "takeProfit1": number or null,',
+    '  "takeProfit2": number or null,',
+    '  "status": "active | win | loss",',
+    '  "notes": "2-4 factual sentences: timeframe, visible setup, visible ICT concepts, and target/risk context. State uncertainty where needed.",',
+    '  "confidence": "high | medium | low"',
+    "}",
+    "Use win or loss only if the screenshot explicitly proves the completed outcome. Otherwise use active.",
   ].join("\n");
 
-  const imageBase64 = typeof image === "string" ? image.slice("data:image/jpeg;base64,".length) : null;
+  const imageBase64 = image.slice("data:image/jpeg;base64,".length);
   const model = "gemini-3.6-flash";
   const geminiResponse = await fetchWithRetry(
     "https://generativelanguage.googleapis.com/v1beta/models/" +
@@ -146,7 +147,7 @@ Deno.serve(async (request) => {
           role: "user",
           parts: [
             { text: instructions },
-            ...(imageBase64 ? [{ inline_data: { mime_type: "image/jpeg", data: imageBase64 } }] : []),
+            { inline_data: { mime_type: "image/jpeg", data: imageBase64 } },
           ],
         }],
         generationConfig: {
@@ -159,7 +160,7 @@ Deno.serve(async (request) => {
   if (!geminiResponse.ok) {
     const details = await geminiResponse.text();
     console.error("Gemini image analysis failed:", details);
-    return jsonResponse({ error: mode === "notes" ? "The AI service could not draft notes. You can continue manually." : "The AI service could not analyse this image. Please try again later." }, 502);
+    return jsonResponse({ error: "The free AI service could not analyse this image. Please try again later." }, 502);
   }
 
   const geminiData = await geminiResponse.json();
@@ -169,16 +170,15 @@ Deno.serve(async (request) => {
     .trim();
 
   if (!text) {
-    return jsonResponse({ error: mode === "notes" ? "The AI returned no notes." : "The AI returned no readable trade details." }, 422);
+    return jsonResponse({ error: "The AI returned no readable trade details." }, 422);
   }
 
   try {
-    const parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, ""));
-    if (mode === "notes") {
-      if (typeof parsed.notes !== "string" || !parsed.notes.trim()) return jsonResponse({ error: "AI returned no notes." }, 422);
-      return jsonResponse({ notes: parsed.notes.trim() });
+    const extraction: unknown = JSON.parse(text.replace(/^```json\s*|\s*```$/g, ""));
+    if (!isTradeExtraction(extraction)) {
+      return jsonResponse({ error: "The AI response did not contain valid trade values." }, 422);
     }
-    return jsonResponse({ extraction: parsed });
+    return jsonResponse({ extraction });
   } catch {
     return jsonResponse({ error: "The AI response was not in the expected format." }, 422);
   }
