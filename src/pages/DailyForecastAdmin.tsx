@@ -56,6 +56,23 @@ const emptyForm = (): FormState => ({
 
 const normaliseSymbol = (symbol: string) => symbol.replace(/[^a-z0-9]/gi, "").toLowerCase();
 
+const isExtraction = (value: unknown): value is Extraction => {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Record<string, unknown>;
+  const nullableNumber = (item: unknown) => item === null || (typeof item === "number" && Number.isFinite(item) && item > 0);
+
+  return (
+    (candidate.market === null || typeof candidate.market === "string") &&
+    (candidate.symbol === null || typeof candidate.symbol === "string") &&
+    (candidate.direction === null || candidate.direction === "long" || candidate.direction === "short") &&
+    nullableNumber(candidate.executionPrice) && nullableNumber(candidate.stopLoss) &&
+    nullableNumber(candidate.takeProfit1) && nullableNumber(candidate.takeProfit2) &&
+    (candidate.status === "active" || candidate.status === "win" || candidate.status === "loss") &&
+    typeof candidate.notes === "string" &&
+    (candidate.confidence === "high" || candidate.confidence === "medium" || candidate.confidence === "low")
+  );
+};
+
 const DailyForecastAdmin = () => {
   const [instruments, setInstruments] = useState<Instrument[]>([]);
   const [forecasts, setForecasts] = useState<Forecast[]>([]);
@@ -220,9 +237,9 @@ const DailyForecastAdmin = () => {
         throw new Error(data?.error ?? functionError?.message ?? "AI could not read this image.");
       }
 
-      const nextExtraction = data?.extraction as Extraction | undefined;
-      if (!nextExtraction) {
-        throw new Error("AI did not return trade values.");
+      const nextExtraction: unknown = data?.extraction;
+      if (!isExtraction(nextExtraction)) {
+        throw new Error("AI did not return valid trade values. Please enter them manually.");
       }
 
       setExtraction(nextExtraction);
