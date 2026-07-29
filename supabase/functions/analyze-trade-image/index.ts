@@ -29,6 +29,41 @@ const fetchWithRetry = async (url: string, options: RequestInit) => {
   return response!;
 };
 
+type TradeExtraction = {
+  market: string | null;
+  symbol: string | null;
+  direction: "long" | "short" | null;
+  executionPrice: number | null;
+  stopLoss: number | null;
+  takeProfit1: number | null;
+  takeProfit2: number | null;
+  status: "active" | "win" | "loss";
+  notes: string;
+  confidence: "high" | "medium" | "low";
+};
+
+const nullableNumber = (value: unknown) =>
+  value === null || (typeof value === "number" && Number.isFinite(value) && value > 0);
+
+const isTradeExtraction = (value: unknown): value is TradeExtraction => {
+  if (!value || typeof value !== "object") return false;
+
+  const extraction = value as Record<string, unknown>;
+  return (
+    (extraction.market === null || typeof extraction.market === "string") &&
+    (extraction.symbol === null || typeof extraction.symbol === "string") &&
+    (extraction.direction === null || extraction.direction === "long" || extraction.direction === "short") &&
+    nullableNumber(extraction.executionPrice) &&
+    nullableNumber(extraction.stopLoss) &&
+    nullableNumber(extraction.takeProfit1) &&
+    nullableNumber(extraction.takeProfit2) &&
+    (extraction.status === "active" || extraction.status === "win" || extraction.status === "loss") &&
+    typeof extraction.notes === "string" &&
+    extraction.notes.length <= 2_000 &&
+    (extraction.confidence === "high" || extraction.confidence === "medium" || extraction.confidence === "low")
+  );
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -139,7 +174,10 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const extraction = JSON.parse(text.replace(/^\`\`\`json\s*|\s*\`\`\`$/g, ""));
+    const extraction: unknown = JSON.parse(text.replace(/^```json\s*|\s*```$/g, ""));
+    if (!isTradeExtraction(extraction)) {
+      return jsonResponse({ error: "The AI response did not contain valid trade values." }, 422);
+    }
     return jsonResponse({ extraction });
   } catch {
     return jsonResponse({ error: "The AI response was not in the expected format." }, 422);
